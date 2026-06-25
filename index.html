@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="睡眠コーチ">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>睡眠コーチ — 23:00消灯</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; background-color: #0a0a0a; }
+    #root { min-height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+  <script>
+"use strict";
+var e = React.createElement;
+var useState = React.useState;
+var useEffect = React.useEffect;
+
+var FACTS = [
+  {
+    category: "脳の破壊", icon: "🧠",
+    title: "あなたの脳は今夜も壊れる",
+    body: "慢性的な睡眠不足は、覚醒と認知を司る青斑核のニューロンを最大25%死滅させる。この損傷は不可逆的で、週末の寝溜めでは回復しない。",
+    source: "Penn Medicine / Journal of Neuroscience, 2013",
+    metric: "25%", metricLabel: "神経細胞の喪失率"
+  },
+  {
+    category: "ホルモン崩壊", icon: "⚡",
+    title: "テストステロンが15年分老化する",
+    body: "たった1週間の睡眠制限（5時間/晩）で、健康な男性のテストステロンが10〜15%低下。これは10〜15年分の加齢に相当する。筋力、意欲、性機能、体脂肪すべてに影響する。",
+    source: "JAMA, 2011 / シカゴ大学",
+    metric: "10-15%", metricLabel: "テストステロン低下率"
+  },
+  {
+    category: "心臓への攻撃", icon: "❤️‍🩹",
+    title: "死亡率が1.7倍になる",
+    body: "6時間以下の睡眠の男性は、7-8時間寝ている男性に比べて全死因死亡率が1.7倍。冠動脈疾患リスクは48%上昇、脳卒中リスクは15%上昇する。",
+    source: "メタ分析 / 約47.5万人対象",
+    metric: "1.7x", metricLabel: "全死因死亡率"
+  },
+  {
+    category: "代謝の破綻", icon: "🩸",
+    title: "糖尿病リスクが30%上昇する",
+    body: "6時間未満の睡眠は2型糖尿病リスクを約30%増加させる。インスリン感受性が低下し、食欲ホルモンが乱れる。断食の効果が夜更かしで帳消しになっている。",
+    source: "前向き研究メタ分析 / 44.7万人",
+    metric: "+30%", metricLabel: "糖尿病リスク増加"
+  },
+  {
+    category: "認知の劣化", icon: "📉",
+    title: "自分の劣化に気づけなくなる",
+    body: "睡眠不足が続くと主観的な眠気は頭打ちになるが、客観的な認知テストのスコアは直線的に低下し続ける。「慣れた」と感じるのは脳が自己評価能力を失った証拠。",
+    source: "Frontiers in Neuroscience, 2025",
+    metric: "−54%", metricLabel: "中等度睡眠障害時のミス増加率"
+  },
+  {
+    category: "免疫の崩壊", icon: "🛡️",
+    title: "風邪をひきやすくなり、がんへの監視も弱まる",
+    body: "6時間未満の睡眠で感染症リスクが有意に上昇。NK細胞の活性低下により、がん細胞への免疫監視も弱体化する。ワクチンの効果も低下する。",
+    source: "Sleep, 2015 / 164人対象",
+    metric: "6h未満", metricLabel: "免疫崩壊の閾値"
+  },
+  {
+    category: "認知症への道", icon: "🌑",
+    title: "低テストステロン×睡眠不足＝認知症リスク急増",
+    body: "テストステロン低下と睡眠不足が組み合わさると、認知機能障害のリスクが相乗的に跳ね上がる。メンデルランダム化により因果関係が支持されている。",
+    source: "Psychiatry Research, 2025",
+    metric: "相乗効果", metricLabel: "リスクの増幅パターン"
+  }
+];
+
+var RULES = [
+  { icon: "📵", text: "20:00アラームでYouTubeを閉じる" },
+  { icon: "🚪", text: "23:00にスマホをリビングに置く" },
+  { icon: "🔒", text: "おやすみモードでYouTube・X・Amazon・メルカリを遮断" },
+  { icon: "🍳", text: "食事は時短に徹する。凝らない。" }
+];
+
+var STORAGE_KEY = "sleep-coach-data";
+
+function getToday() {
+  var d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+function getDayOfWeek(dateStr) {
+  var days = ["日", "月", "火", "水", "木", "金", "土"];
+  return days[new Date(dateStr).getDay()];
+}
+
+function hashDate(str) {
+  var h = 0;
+  for (var i = 0; i < str.length; i++) {
+    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function assign() {
+  var result = {};
+  for (var i = 0; i < arguments.length; i++) {
+    var obj = arguments[i];
+    if (obj) for (var k in obj) { if (obj.hasOwnProperty(k)) result[k] = obj[k]; }
+  }
+  return result;
+}
+
+var S = {
+  container: {
+    minHeight: "100vh", backgroundColor: "#0a0a0a", color: "#e5e5e5",
+    fontFamily: '-apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif',
+    padding: "20px 16px", display: "flex", flexDirection: "column", alignItems: "center"
+  },
+  loadingText: { marginTop: 100, fontSize: 16, color: "#666" },
+  progressBar: { width: "100%", maxWidth: 400, height: 3, backgroundColor: "#222", borderRadius: 2, overflow: "hidden", marginBottom: 6 },
+  progressFill: { height: "100%", backgroundColor: "#dc2626", transition: "width 0.3s ease" },
+  progressLabel: { fontSize: 12, color: "#555", marginBottom: 20, fontVariantNumeric: "tabular-nums" },
+  factCard: { width: "100%", maxWidth: 400, backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "28px 22px", marginBottom: 20 },
+  categoryBadge: { fontSize: 12, color: "#dc2626", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 20 },
+  metricBlock: { marginBottom: 22 },
+  metricValue: { fontSize: 56, fontWeight: 800, color: "#dc2626", lineHeight: 1, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em" },
+  metricLabel: { fontSize: 13, color: "#777", marginTop: 6 },
+  factTitle: { fontSize: 20, fontWeight: 700, color: "#f5f5f5", lineHeight: 1.4, margin: "0 0 14px 0" },
+  factBody: { fontSize: 15, lineHeight: 1.7, color: "#b0b0b0", marginBottom: 16 },
+  factSource: { fontSize: 11, color: "#555", fontStyle: "italic" },
+  nextBtn: { width: "100%", maxWidth: 400, padding: "16px 24px", backgroundColor: "#dc2626", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer", letterSpacing: "0.02em" },
+  rulesTitle: { fontSize: 22, fontWeight: 700, color: "#f5f5f5", margin: "10px 0 20px 0" },
+  rulesList: { width: "100%", maxWidth: 400, marginBottom: 24 },
+  ruleItem: { display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 10, marginBottom: 8 },
+  ruleIcon: { fontSize: 22, flexShrink: 0 },
+  ruleText: { fontSize: 15, color: "#d4d4d4", lineHeight: 1.5 },
+  ackBtn: { width: "100%", maxWidth: 400, padding: "16px 24px", backgroundColor: "#222", color: "#999", border: "1px solid #333", borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: "pointer", marginTop: 8 },
+  commitBtn: { width: "100%", maxWidth: 400, padding: "18px 24px", backgroundColor: "#dc2626", color: "#fff", border: "none", borderRadius: 10, fontSize: 17, fontWeight: 800, cursor: "pointer", marginTop: 8, letterSpacing: "0.02em" },
+  streakBanner: { fontSize: 16, fontWeight: 700, color: "#f59e0b", textAlign: "center", padding: "10px 0", marginBottom: 16 },
+  weekGrid: { display: "flex", gap: 8, justifyContent: "center", marginBottom: 24, width: "100%", maxWidth: 400 },
+  weekDay: { display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 },
+  weekDayLabel: { fontSize: 11, color: "#555" },
+  weekDot: { width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff" },
+  morningCard: { maxWidth: 400, width: "100%", backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "32px 22px", textAlign: "center", marginTop: 40 },
+  morningTitle: { fontSize: 20, fontWeight: 700, color: "#f5f5f5", margin: "0 0 12px 0" },
+  morningBody: { fontSize: 15, color: "#999", marginBottom: 24 },
+  morningButtons: { display: "flex", gap: 12 },
+  successBtn: { flex: 1, padding: "14px 0", backgroundColor: "#14532d", color: "#22c55e", border: "1px solid #166534", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer" },
+  failBtn: { flex: 1, padding: "14px 0", backgroundColor: "#450a0a", color: "#ef4444", border: "1px solid #7f1d1d", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer" },
+  morningResult: { padding: "12px 0" },
+  doneCard: { maxWidth: 400, width: "100%", textAlign: "center", marginTop: 40 },
+  doneTitle: { fontSize: 22, fontWeight: 700, color: "#f5f5f5", margin: "0 0 10px 0" },
+  doneBody: { fontSize: 15, color: "#777", marginBottom: 24 },
+  countdown: { backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "20px", marginBottom: 20 },
+  countdownLabel: { fontSize: 12, color: "#555", marginBottom: 6, letterSpacing: "0.1em", textTransform: "uppercase" },
+  countdownValue: { fontSize: 32, fontWeight: 800, color: "#dc2626", fontVariantNumeric: "tabular-nums" },
+  doneReminder: { fontSize: 14, color: "#888", lineHeight: 1.8, whiteSpace: "pre-line", backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "16px 20px", textAlign: "left" },
+  resetBtn: { marginTop: 32, padding: "10px 20px", backgroundColor: "transparent", color: "#444", border: "1px solid #222", borderRadius: 8, fontSize: 12, cursor: "pointer" }
+};
+
+function SleepCoach() {
+  var phaseState = useState("loading");
+  var phase = phaseState[0], setPhase = phaseState[1];
+
+  var factIndexState = useState(0);
+  var factIndex = factIndexState[0], setFactIndex = factIndexState[1];
+
+  var rulesAckedState = useState(false);
+  var rulesAcked = rulesAckedState[0], setRulesAcked = rulesAckedState[1];
+
+  var dataState = useState({ streak: 0, history: {}, lastCheckIn: null });
+  var data = dataState[0], setData = dataState[1];
+
+  var morningResultState = useState(null);
+  var morningResult = morningResultState[0], setMorningResult = morningResultState[1];
+
+  var todayFactsState = useState([]);
+  var todayFacts = todayFactsState[0], setTodayFacts = todayFactsState[1];
+
+  useEffect(function() {
+    try {
+      var value = localStorage.getItem(STORAGE_KEY);
+      if (value) { setData(JSON.parse(value)); return; }
+    } catch (err) {}
+    setData({ streak: 0, history: {}, lastCheckIn: null });
+  }, []);
+
+  useEffect(function() {
+    if (phase !== "loading") return;
+    var seed = hashDate(getToday());
+    var shuffled = FACTS.slice().sort(function(a, b) {
+      var ha = ((seed * 31 + FACTS.indexOf(a)) % 997);
+      var hb = ((seed * 31 + FACTS.indexOf(b)) % 997);
+      return ha - hb;
+    });
+    setTodayFacts(shuffled.slice(0, 4));
+
+    var today = getToday();
+    if (data.history[today] && data.history[today].committed) {
+      setPhase("done");
+    } else if (data.lastCheckIn && data.lastCheckIn !== today && data.history[data.lastCheckIn] && !data.history[data.lastCheckIn].result) {
+      setPhase("morning");
+    } else {
+      setPhase("facts");
+    }
+  }, [data]);
+
+  function saveData(newData) {
+    setData(newData);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(newData)); } catch (err) {}
+  }
+
+  function handleNextFact() {
+    if (factIndex < todayFacts.length - 1) { setFactIndex(factIndex + 1); }
+    else { setPhase("rules"); }
+  }
+
+  function handleCommit() {
+    var today = getToday();
+    var newHistory = assign({}, data.history);
+    newHistory[today] = { committed: true, time: new Date().toISOString() };
+    saveData(assign({}, data, { history: newHistory, lastCheckIn: today }));
+    setPhase("done");
+  }
+
+  function handleMorningReport(success) {
+    setMorningResult(success);
+    var yesterday = data.lastCheckIn;
+    if (!yesterday) return;
+    var newHistory = assign({}, data.history);
+    newHistory[yesterday] = assign({}, newHistory[yesterday], { result: success });
+    var newStreak = success ? data.streak + 1 : 0;
+    saveData(assign({}, data, { history: newHistory, streak: newStreak }));
+    setTimeout(function() { setPhase("facts"); setMorningResult(null); }, 2000);
+  }
+
+  function handleReset() {
+    saveData({ streak: 0, history: {}, lastCheckIn: null });
+    setFactIndex(0);
+    setRulesAcked(false);
+    setPhase("facts");
+  }
+
+  var recentDays = [];
+  for (var i = 6; i >= 0; i--) {
+    var d = new Date();
+    d.setDate(d.getDate() - i);
+    var key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    recentDays.push(assign({ date: key, day: getDayOfWeek(key) }, data.history[key]));
+  }
+
+  // --- LOADING ---
+  if (phase === "loading") {
+    return e("div", { style: S.container },
+      e("div", { style: S.loadingText }, "読み込み中...")
+    );
+  }
+
+  // --- MORNING REPORT ---
+  if (phase === "morning") {
+    var morningContent;
+    if (morningResult === null) {
+      morningContent = e("div", { style: S.morningButtons },
+        e("button", { style: S.successBtn, onClick: function() { handleMorningReport(true); } }, "✓ できた"),
+        e("button", { style: S.failBtn, onClick: function() { handleMorningReport(false); } }, "✗ できなかった")
+      );
+    } else {
+      morningContent = e("div", { style: S.morningResult },
+        morningResult
+          ? e("p", { style: { color: "#22c55e", fontSize: 18, fontWeight: 700 } }, "記録しました。継続していきましょう。")
+          : e("p", { style: { color: "#f59e0b", fontSize: 18, fontWeight: 700 } }, "正直に報告できたことが大事です。今夜こそ。")
+      );
+    }
+    return e("div", { style: S.container },
+      e("div", { style: S.morningCard },
+        e("div", { style: { fontSize: 40, marginBottom: 12 } }, "🌅"),
+        e("h2", { style: S.morningTitle }, "昨夜の結果報告"),
+        e("p", { style: S.morningBody }, "23:00までにスマホを手放して消灯できましたか？"),
+        morningContent
+      )
+    );
+  }
+
+  // --- FACTS ---
+  if (phase === "facts") {
+    var fact = todayFacts[factIndex];
+    if (!fact) return null;
+    var progress = factIndex + 1;
+    var total = todayFacts.length;
+
+    return e("div", { style: S.container },
+      e("div", { style: S.progressBar },
+        e("div", { style: assign({}, S.progressFill, { width: (progress / total * 100) + "%" }) })
+      ),
+      e("div", { style: S.progressLabel }, progress + " / " + total),
+      e("div", { style: S.factCard },
+        e("div", { style: S.categoryBadge }, fact.icon + " " + fact.category),
+        e("div", { style: S.metricBlock },
+          e("div", { style: S.metricValue }, fact.metric),
+          e("div", { style: S.metricLabel }, fact.metricLabel)
+        ),
+        e("h2", { style: S.factTitle }, fact.title),
+        e("p", { style: S.factBody }, fact.body),
+        e("p", { style: S.factSource }, fact.source)
+      ),
+      e("button", { style: S.nextBtn, onClick: handleNextFact },
+        factIndex < todayFacts.length - 1 ? "次の事実を見る →" : "ルール確認へ →"
+      )
+    );
+  }
+
+  // --- RULES ---
+  if (phase === "rules") {
+    var ruleItems = RULES.map(function(r, i) {
+      return e("div", { key: i, style: S.ruleItem },
+        e("span", { style: S.ruleIcon }, r.icon),
+        e("span", { style: S.ruleText }, r.text)
+      );
+    });
+
+    var weekDots = recentDays.map(function(d, i) {
+      var bg = d.result === true ? "#22c55e" : d.result === false ? "#ef4444" : d.committed ? "#f59e0b" : "#333";
+      var label = d.result === true ? "✓" : d.result === false ? "✗" : d.committed ? "−" : "";
+      return e("div", { key: i, style: S.weekDay },
+        e("div", { style: S.weekDayLabel }, d.day),
+        e("div", { style: assign({}, S.weekDot, { backgroundColor: bg }) }, label)
+      );
+    });
+
+    var bottomBtn = !rulesAcked
+      ? e("button", { style: S.ackBtn, onClick: function() { setRulesAcked(true); } }, "理解した。すべて読んだ。")
+      : e("button", { style: S.commitBtn, onClick: handleCommit }, "今夜、23:00に消灯することを誓う");
+
+    return e("div", { style: S.container },
+      e("h2", { style: S.rulesTitle }, "今夜守る4つのルール"),
+      e("div", { style: S.rulesList }, ruleItems),
+      data.streak > 0 ? e("div", { style: S.streakBanner }, "🔥 現在の連続達成: " + data.streak + "日") : null,
+      e("div", { style: S.weekGrid }, weekDots),
+      bottomBtn
+    );
+  }
+
+  // --- DONE ---
+  if (phase === "done") {
+    var now = new Date();
+    var target = new Date();
+    target.setHours(23, 0, 0, 0);
+    var diff = target - now;
+    var hoursLeft = diff > 0 ? Math.floor(diff / 3600000) : 0;
+    var minsLeft = diff > 0 ? Math.floor((diff % 3600000) / 60000) : 0;
+
+    return e("div", { style: S.container },
+      e("div", { style: S.doneCard },
+        e("div", { style: { fontSize: 48, marginBottom: 8 } }, "✅"),
+        e("h2", { style: S.doneTitle }, "今日のチェックイン完了"),
+        e("p", { style: S.doneBody }, "今夜の誓いは記録されました。"),
+        diff > 0 ? e("div", { style: S.countdown },
+          e("div", { style: S.countdownLabel }, "消灯まで"),
+          e("div", { style: S.countdownValue }, hoursLeft + "時間 " + minsLeft + "分")
+        ) : null,
+        e("div", { style: S.doneReminder }, "20:00 → YouTube終了\n23:00 → スマホをリビングへ → 消灯"),
+        data.streak > 0 ? e("div", { style: assign({}, S.streakBanner, { marginTop: 20 }) }, "🔥 連続達成: " + data.streak + "日") : null,
+        e("button", { style: S.resetBtn, onClick: handleReset }, "もう一度チェックインする（テスト用）")
+      )
+    );
+  }
+
+  return null;
+}
+
+var root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(e(SleepCoach));
+  </script>
+</body>
+</html>
