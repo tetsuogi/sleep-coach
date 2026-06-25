@@ -93,6 +93,8 @@ function getToday() {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
 
+function getHour() { return new Date().getHours(); }
+
 function getDayOfWeek(dateStr) {
   var days = ["日", "月", "火", "水", "木", "金", "土"];
   return days[new Date(dateStr).getDay()];
@@ -113,6 +115,10 @@ function assign() {
     if (obj) for (var k in obj) { if (obj.hasOwnProperty(k)) result[k] = obj[k]; }
   }
   return result;
+}
+
+function todayRecord(data) {
+  return data.history[getToday()] || {};
 }
 
 var S = {
@@ -160,7 +166,21 @@ var S = {
   countdownLabel: { fontSize: 12, color: "#555", marginBottom: 6, letterSpacing: "0.1em", textTransform: "uppercase" },
   countdownValue: { fontSize: 32, fontWeight: 800, color: "#dc2626", fontVariantNumeric: "tabular-nums" },
   doneReminder: { fontSize: 14, color: "#888", lineHeight: 1.8, whiteSpace: "pre-line", backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "16px 20px", textAlign: "left" },
-  resetBtn: { marginTop: 32, padding: "10px 20px", backgroundColor: "transparent", color: "#444", border: "1px solid #222", borderRadius: 8, fontSize: 12, cursor: "pointer" }
+  resetBtn: { marginTop: 32, padding: "10px 20px", backgroundColor: "transparent", color: "#444", border: "1px solid #222", borderRadius: 8, fontSize: 12, cursor: "pointer" },
+  actionCard: { maxWidth: 400, width: "100%", backgroundColor: "#111", border: "2px solid #dc2626", borderRadius: 16, padding: "36px 24px", textAlign: "center", marginTop: 30 },
+  actionIcon: { fontSize: 56, marginBottom: 16 },
+  actionTitle: { fontSize: 22, fontWeight: 800, color: "#f5f5f5", margin: "0 0 12px 0", lineHeight: 1.3 },
+  actionBody: { fontSize: 15, color: "#999", lineHeight: 1.7, marginBottom: 24 },
+  actionTime: { fontSize: 13, color: "#dc2626", fontWeight: 700, letterSpacing: "0.08em", marginBottom: 20 },
+  actionConfirmBtn: { width: "100%", padding: "18px 24px", backgroundColor: "#dc2626", color: "#fff", border: "none", borderRadius: 12, fontSize: 17, fontWeight: 800, cursor: "pointer", letterSpacing: "0.02em" },
+  actionDoneMsg: { fontSize: 18, fontWeight: 700, color: "#22c55e", padding: "16px 0" },
+  actionChecklist: { textAlign: "left", marginBottom: 24, padding: "16px 20px", backgroundColor: "#0a0a0a", borderRadius: 10 },
+  actionCheckItem: { display: "flex", alignItems: "center", gap: 10, padding: "8px 0", fontSize: 14, color: "#b0b0b0" },
+  actionCheckDone: { color: "#22c55e", textDecoration: "line-through" },
+  goodnightCard: { maxWidth: 400, width: "100%", textAlign: "center", marginTop: 60 },
+  goodnightIcon: { fontSize: 64, marginBottom: 16 },
+  goodnightTitle: { fontSize: 24, fontWeight: 800, color: "#f5f5f5", margin: "0 0 12px 0" },
+  goodnightBody: { fontSize: 16, color: "#777", lineHeight: 1.6 }
 };
 
 function SleepCoach() {
@@ -201,18 +221,34 @@ function SleepCoach() {
     setTodayFacts(shuffled.slice(0, 4));
 
     var today = getToday();
-    if (data.history[today] && data.history[today].committed) {
-      setPhase("done");
-    } else if (data.lastCheckIn && data.lastCheckIn !== today && data.history[data.lastCheckIn] && !data.history[data.lastCheckIn].result) {
+    var rec = data.history[today] || {};
+    var hour = getHour();
+
+    if (data.lastCheckIn && data.lastCheckIn !== today && data.history[data.lastCheckIn] && !data.history[data.lastCheckIn].result) {
       setPhase("morning");
-    } else {
+    } else if (!rec.committed) {
       setPhase("facts");
+    } else if (hour >= 23 && !rec.phoneOut) {
+      setPhase("phone");
+    } else if (hour >= 20 && !rec.youtubeOff) {
+      setPhase("youtube");
+    } else if (hour >= 23 && rec.phoneOut) {
+      setPhase("goodnight");
+    } else {
+      setPhase("done");
     }
   }, [data]);
 
   function saveData(newData) {
     setData(newData);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(newData)); } catch (err) {}
+  }
+
+  function updateTodayRecord(fields) {
+    var today = getToday();
+    var newHistory = assign({}, data.history);
+    newHistory[today] = assign({}, newHistory[today], fields);
+    saveData(assign({}, data, { history: newHistory }));
   }
 
   function handleNextFact() {
@@ -223,9 +259,22 @@ function SleepCoach() {
   function handleCommit() {
     var today = getToday();
     var newHistory = assign({}, data.history);
-    newHistory[today] = { committed: true, time: new Date().toISOString() };
+    newHistory[today] = assign({}, newHistory[today], { committed: true, time: new Date().toISOString() });
     saveData(assign({}, data, { history: newHistory, lastCheckIn: today }));
+    var hour = getHour();
+    if (hour >= 23) { setPhase("phone"); }
+    else if (hour >= 20) { setPhase("youtube"); }
+    else { setPhase("done"); }
+  }
+
+  function handleYoutubeOff() {
+    updateTodayRecord({ youtubeOff: true, youtubeOffTime: new Date().toISOString() });
     setPhase("done");
+  }
+
+  function handlePhoneOut() {
+    updateTodayRecord({ phoneOut: true, phoneOutTime: new Date().toISOString() });
+    setPhase("goodnight");
   }
 
   function handleMorningReport(success) {
@@ -253,6 +302,8 @@ function SleepCoach() {
     var key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
     recentDays.push(assign({ date: key, day: getDayOfWeek(key) }, data.history[key]));
   }
+
+  var rec = todayRecord(data);
 
   // --- LOADING ---
   if (phase === "loading") {
@@ -345,27 +396,112 @@ function SleepCoach() {
     );
   }
 
-  // --- DONE ---
+  // --- YOUTUBE OFF (20:00~) ---
+  if (phase === "youtube") {
+    return e("div", { style: S.container },
+      e("div", { style: S.actionCard },
+        e("div", { style: S.actionIcon }, "📵"),
+        e("div", { style: S.actionTime }, "20:00 — アクション必須"),
+        e("h2", { style: S.actionTitle }, "YouTubeを今すぐ閉じろ"),
+        e("p", { style: S.actionBody },
+          "食後のダラダラ視聴が睡眠時間を奪う最大の原因。\n「あと1本」はない。今閉じなければ23:00消灯は不可能。"),
+        e("div", { style: S.actionChecklist },
+          e("div", { style: S.actionCheckItem }, "1. YouTubeアプリを閉じる"),
+          e("div", { style: S.actionCheckItem }, "2. X（Twitter）も閉じる"),
+          e("div", { style: S.actionCheckItem }, "3. Amazon・メルカリも閲覧しない")
+        ),
+        e("button", { style: S.actionConfirmBtn, onClick: handleYoutubeOff },
+          "すべて閉じた。確認する。")
+      )
+    );
+  }
+
+  // --- PHONE OUT (23:00~) ---
+  if (phase === "phone") {
+    return e("div", { style: S.container },
+      e("div", { style: assign({}, S.actionCard, { borderColor: "#f59e0b" }) },
+        e("div", { style: S.actionIcon }, "🚪"),
+        e("div", { style: assign({}, S.actionTime, { color: "#f59e0b" }) }, "23:00 — 最終アクション"),
+        e("h2", { style: S.actionTitle }, "スマホをリビングに置け"),
+        e("p", { style: S.actionBody },
+          "寝室にスマホを持ち込んだ時点で負け。\n目覚ましはスマートウォッチで十分。今すぐ手放せ。"),
+        e("div", { style: S.actionChecklist },
+          e("div", { style: S.actionCheckItem }, "1. おやすみモードをONにする"),
+          e("div", { style: S.actionCheckItem }, "2. スマホをリビングの充電器に置く"),
+          e("div", { style: S.actionCheckItem }, "3. 寝室に入る → 消灯")
+        ),
+        e("button", { style: assign({}, S.actionConfirmBtn, { backgroundColor: "#f59e0b", color: "#000" }), onClick: handlePhoneOut },
+          "スマホを置いた。おやすみ。")
+      )
+    );
+  }
+
+  // --- GOODNIGHT ---
+  if (phase === "goodnight") {
+    return e("div", { style: S.container },
+      e("div", { style: S.goodnightCard },
+        e("div", { style: S.goodnightIcon }, "🌙"),
+        e("h2", { style: S.goodnightTitle }, "おやすみなさい"),
+        e("p", { style: S.goodnightBody }, "今日のすべてのタスク完了。\nあとは目を閉じるだけ。"),
+        e("div", { style: assign({}, S.actionChecklist, { marginTop: 24 }) },
+          e("div", { style: assign({}, S.actionCheckItem, S.actionCheckDone) }, "✓ チェックイン完了"),
+          e("div", { style: assign({}, S.actionCheckItem, S.actionCheckDone) }, "✓ YouTube・SNS終了"),
+          e("div", { style: assign({}, S.actionCheckItem, S.actionCheckDone) }, "✓ スマホをリビングに配置")
+        ),
+        data.streak > 0 ? e("div", { style: assign({}, S.streakBanner, { marginTop: 20 }) }, "🔥 連続達成: " + data.streak + "日") : null,
+        e("button", { style: S.resetBtn, onClick: handleReset }, "リセット（テスト用）")
+      )
+    );
+  }
+
+  // --- DONE (checkin complete, waiting for next action) ---
   if (phase === "done") {
     var now = new Date();
-    var target = new Date();
-    target.setHours(23, 0, 0, 0);
-    var diff = target - now;
-    var hoursLeft = diff > 0 ? Math.floor(diff / 3600000) : 0;
-    var minsLeft = diff > 0 ? Math.floor((diff % 3600000) / 60000) : 0;
+    var hour = now.getHours();
+
+    var nextAction = null;
+    var nextTime = null;
+    if (!rec.youtubeOff && hour < 20) {
+      nextAction = "📵 YouTubeを閉じる";
+      nextTime = new Date(); nextTime.setHours(20, 0, 0, 0);
+    } else if (!rec.phoneOut) {
+      nextAction = "🚪 スマホをリビングに置く";
+      nextTime = new Date(); nextTime.setHours(23, 0, 0, 0);
+    }
+
+    var target23 = new Date(); target23.setHours(23, 0, 0, 0);
+    var diffLights = target23 - now;
+    var hoursLeft = diffLights > 0 ? Math.floor(diffLights / 3600000) : 0;
+    var minsLeft = diffLights > 0 ? Math.floor((diffLights % 3600000) / 60000) : 0;
+
+    var diffNext = nextTime ? nextTime - now : 0;
+    var nextH = diffNext > 0 ? Math.floor(diffNext / 3600000) : 0;
+    var nextM = diffNext > 0 ? Math.floor((diffNext % 3600000) / 60000) : 0;
 
     return e("div", { style: S.container },
       e("div", { style: S.doneCard },
         e("div", { style: { fontSize: 48, marginBottom: 8 } }, "✅"),
         e("h2", { style: S.doneTitle }, "今日のチェックイン完了"),
         e("p", { style: S.doneBody }, "今夜の誓いは記録されました。"),
-        diff > 0 ? e("div", { style: S.countdown },
+        diffLights > 0 ? e("div", { style: S.countdown },
           e("div", { style: S.countdownLabel }, "消灯まで"),
           e("div", { style: S.countdownValue }, hoursLeft + "時間 " + minsLeft + "分")
         ) : null,
-        e("div", { style: S.doneReminder }, "20:00 → YouTube終了\n23:00 → スマホをリビングへ → 消灯"),
+        nextAction && diffNext > 0 ? e("div", { style: assign({}, S.countdown, { borderColor: "#f59e0b" }) },
+          e("div", { style: S.countdownLabel }, "次のアクション"),
+          e("div", { style: { fontSize: 16, fontWeight: 700, color: "#f5f5f5", marginBottom: 4 } }, nextAction),
+          e("div", { style: { fontSize: 14, color: "#f59e0b" } }, nextH + "時間 " + nextM + "分後")
+        ) : null,
+        e("div", { style: S.actionChecklist },
+          e("div", { style: assign({}, S.actionCheckItem, rec.committed ? S.actionCheckDone : {}) },
+            (rec.committed ? "✓ " : "○ ") + "チェックイン"),
+          e("div", { style: assign({}, S.actionCheckItem, rec.youtubeOff ? S.actionCheckDone : {}) },
+            (rec.youtubeOff ? "✓ " : "○ ") + "YouTube・SNS終了（20:00）"),
+          e("div", { style: assign({}, S.actionCheckItem, rec.phoneOut ? S.actionCheckDone : {}) },
+            (rec.phoneOut ? "✓ " : "○ ") + "スマホ追放（23:00）")
+        ),
         data.streak > 0 ? e("div", { style: assign({}, S.streakBanner, { marginTop: 20 }) }, "🔥 連続達成: " + data.streak + "日") : null,
-        e("button", { style: S.resetBtn, onClick: handleReset }, "もう一度チェックインする（テスト用）")
+        e("button", { style: S.resetBtn, onClick: handleReset }, "リセット（テスト用）")
       )
     );
   }
