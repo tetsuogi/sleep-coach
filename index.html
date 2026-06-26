@@ -101,11 +101,20 @@ function getDayOfWeek(dateStr) {
 }
 
 function hashDate(str) {
-  var h = 0;
+  var h = 5381;
   for (var i = 0; i < str.length; i++) {
-    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+    h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
   }
-  return Math.abs(h);
+  return h;
+}
+
+function shuffleFacts(today) {
+  var seed = hashDate(today);
+  return FACTS.slice().sort(function(a, b) {
+    var ha = hashDate(today + "-" + FACTS.indexOf(a)) % 9973;
+    var hb = hashDate(today + "-" + FACTS.indexOf(b)) % 9973;
+    return ha - hb;
+  }).slice(0, 4);
 }
 
 function assign() {
@@ -203,28 +212,22 @@ function SleepCoach() {
   var todayFacts = todayFactsState[0], setTodayFacts = todayFactsState[1];
 
   useEffect(function() {
+    var loadedData;
     try {
       var value = localStorage.getItem(STORAGE_KEY);
-      if (value) { setData(JSON.parse(value)); return; }
+      if (value) { loadedData = JSON.parse(value); }
     } catch (err) {}
-    setData({ streak: 0, history: {}, lastCheckIn: null });
-  }, []);
+    if (!loadedData) { loadedData = { streak: 0, history: {}, lastCheckIn: null }; }
 
-  useEffect(function() {
-    if (phase !== "loading") return;
-    var seed = hashDate(getToday());
-    var shuffled = FACTS.slice().sort(function(a, b) {
-      var ha = ((seed * 31 + FACTS.indexOf(a)) % 997);
-      var hb = ((seed * 31 + FACTS.indexOf(b)) % 997);
-      return ha - hb;
-    });
-    setTodayFacts(shuffled.slice(0, 4));
+    setData(loadedData);
 
     var today = getToday();
-    var rec = data.history[today] || {};
+    setTodayFacts(shuffleFacts(today));
+
+    var rec = loadedData.history[today] || {};
     var hour = getHour();
 
-    if (data.lastCheckIn && data.lastCheckIn !== today && data.history[data.lastCheckIn] && !data.history[data.lastCheckIn].result) {
+    if (loadedData.lastCheckIn && loadedData.lastCheckIn !== today && loadedData.history[loadedData.lastCheckIn] && !loadedData.history[loadedData.lastCheckIn].result) {
       setPhase("morning");
     } else if (!rec.committed) {
       setPhase("facts");
@@ -237,7 +240,7 @@ function SleepCoach() {
     } else {
       setPhase("done");
     }
-  }, [data]);
+  }, []);
 
   function saveData(newData) {
     setData(newData);
