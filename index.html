@@ -13,6 +13,12 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; background-color: #0a0a0a; }
     #root { min-height: 100%; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    textarea:focus { outline: none; border-color: #dc2626 !important; }
   </style>
 </head>
 <body>
@@ -27,55 +33,111 @@ var e = React.createElement;
 var useState = React.useState;
 var useEffect = React.useEffect;
 
+/* ============================================================
+   設定 — Phase B（GAS連携）を有効化する場合はここにURLを貼る
+   ============================================================ */
+var GAS_URL = "";      // 例: "https://script.google.com/macros/s/XXXX/exec"（空ならローカルのみ動作）
+var GAS_TOKEN = "";    // GAS側と一致させる合言葉
+
+/* ============================================================
+   恐怖ファクト（12件）— 各件にクイズを内蔵
+   ============================================================ */
 var FACTS = [
   {
     category: "脳の破壊", icon: "🧠",
     title: "あなたの脳は今夜も壊れる",
     body: "慢性的な睡眠不足は、覚醒と認知を司る青斑核のニューロンを最大25%死滅させる。この損傷は不可逆的で、週末の寝溜めでは回復しない。",
     source: "Penn Medicine / Journal of Neuroscience, 2013",
-    metric: "25%", metricLabel: "神経細胞の喪失率"
+    metric: "25%", metricLabel: "神経細胞の喪失率",
+    quiz: { q: "慢性的な睡眠不足で死滅する脳の神経細胞は最大何%？", choices: ["5%", "25%", "50%"], answer: "25%" }
   },
   {
     category: "ホルモン崩壊", icon: "⚡",
     title: "テストステロンが15年分老化する",
     body: "たった1週間の睡眠制限（5時間/晩）で、健康な男性のテストステロンが10〜15%低下。これは10〜15年分の加齢に相当する。筋力、意欲、性機能、体脂肪すべてに影響する。",
     source: "JAMA, 2011 / シカゴ大学",
-    metric: "10-15%", metricLabel: "テストステロン低下率"
+    metric: "10-15%", metricLabel: "テストステロン低下率",
+    quiz: { q: "1週間の5時間睡眠でテストステロンは何年分老化する？", choices: ["1〜2年分", "5年分", "10〜15年分"], answer: "10〜15年分" }
   },
   {
     category: "心臓への攻撃", icon: "❤️‍🩹",
     title: "死亡率が1.7倍になる",
     body: "6時間以下の睡眠の男性は、7-8時間寝ている男性に比べて全死因死亡率が1.7倍。冠動脈疾患リスクは48%上昇、脳卒中リスクは15%上昇する。",
     source: "メタ分析 / 約47.5万人対象",
-    metric: "1.7x", metricLabel: "全死因死亡率"
+    metric: "1.7x", metricLabel: "全死因死亡率",
+    quiz: { q: "6時間以下の睡眠だと全死因死亡率は何倍になる？", choices: ["1.1倍", "1.7倍", "3倍"], answer: "1.7倍" }
   },
   {
     category: "代謝の破綻", icon: "🩸",
     title: "糖尿病リスクが30%上昇する",
     body: "6時間未満の睡眠は2型糖尿病リスクを約30%増加させる。インスリン感受性が低下し、食欲ホルモンが乱れる。断食の効果が夜更かしで帳消しになっている。",
     source: "前向き研究メタ分析 / 44.7万人",
-    metric: "+30%", metricLabel: "糖尿病リスク増加"
+    metric: "+30%", metricLabel: "糖尿病リスク増加",
+    quiz: { q: "6時間未満の睡眠で2型糖尿病リスクは何%上がる？", choices: ["+5%", "+30%", "+100%"], answer: "+30%" }
   },
   {
     category: "認知の劣化", icon: "📉",
     title: "自分の劣化に気づけなくなる",
     body: "睡眠不足が続くと主観的な眠気は頭打ちになるが、客観的な認知テストのスコアは直線的に低下し続ける。「慣れた」と感じるのは脳が自己評価能力を失った証拠。",
     source: "Frontiers in Neuroscience, 2025",
-    metric: "−54%", metricLabel: "中等度睡眠障害時のミス増加率"
+    metric: "自覚なし", metricLabel: "劣化に気づけない罠",
+    quiz: { q: "睡眠不足に「慣れた」と感じるのはなぜ？", choices: ["本当に適応したから", "脳が自己評価能力を失ったから", "気のせい"], answer: "脳が自己評価能力を失ったから" }
   },
   {
     category: "免疫の崩壊", icon: "🛡️",
     title: "風邪をひきやすくなり、がんへの監視も弱まる",
     body: "6時間未満の睡眠で感染症リスクが有意に上昇。NK細胞の活性低下により、がん細胞への免疫監視も弱体化する。ワクチンの効果も低下する。",
     source: "Sleep, 2015 / 164人対象",
-    metric: "6h未満", metricLabel: "免疫崩壊の閾値"
+    metric: "6h未満", metricLabel: "免疫崩壊の閾値",
+    quiz: { q: "免疫が崩壊しはじめる睡眠時間の閾値は？", choices: ["8時間未満", "7時間未満", "6時間未満"], answer: "6時間未満" }
   },
   {
     category: "認知症への道", icon: "🌑",
     title: "低テストステロン×睡眠不足＝認知症リスク急増",
     body: "テストステロン低下と睡眠不足が組み合わさると、認知機能障害のリスクが相乗的に跳ね上がる。メンデルランダム化により因果関係が支持されている。",
     source: "Psychiatry Research, 2025",
-    metric: "相乗効果", metricLabel: "リスクの増幅パターン"
+    metric: "相乗効果", metricLabel: "リスクの増幅パターン",
+    quiz: { q: "低テストステロンと睡眠不足が重なるとリスクはどうなる？", choices: ["変わらない", "単純に足し算", "相乗的に急増する"], answer: "相乗的に急増する" }
+  },
+  {
+    category: "睡眠の不規則性", icon: "🎲",
+    title: "「時間」より「規則性」が死を分ける",
+    body: "就寝・起床時刻がバラバラな人は、睡眠時間が足りていても全死因死亡リスクが上昇。睡眠の規則性は睡眠時間よりも強力な死亡予測因子だと判明した。毎日同じ時刻に寝ることが最重要。",
+    source: "Sleep, 2024 / UK Biobank 約6万人",
+    metric: "規則性>時間", metricLabel: "死亡リスクの最強予測因子",
+    quiz: { q: "死亡リスクの予測因子として、より強力なのは？", choices: ["睡眠の規則性", "睡眠の合計時間", "寝る部屋の広さ"], answer: "睡眠の規則性" }
+  },
+  {
+    category: "感情の暴走", icon: "🌋",
+    title: "扁桃体が60%過剰反応する",
+    body: "一晩の睡眠不足で、恐怖や怒りを司る扁桃体の反応が約60%増幅。理性を司る前頭前野との接続が断たれ、感情のブレーキが効かなくなる。些細なことでイライラするのは意志の弱さではなく脳の故障。",
+    source: "Current Biology, 2007 / UC Berkeley",
+    metric: "+60%", metricLabel: "扁桃体の過剰反応",
+    quiz: { q: "一晩の睡眠不足で扁桃体（感情の中枢）の反応は？", choices: ["約60%過剰になる", "変わらない", "逆に鈍くなる"], answer: "約60%過剰になる" }
+  },
+  {
+    category: "酩酊状態", icon: "🍺",
+    title: "気づかぬうちに酔っぱらっている",
+    body: "6時間睡眠を2週間続けると、48時間ぶっ通しで徹夜したのと同等まで認知機能が低下する。恐ろしいのは、本人は「大丈夫」と感じていること。飲酒運転と同じ状態で毎日を過ごしている。",
+    source: "Sleep, 2003 / Van Dongen et al.",
+    metric: "48時間", metricLabel: "徹夜相当の認知低下",
+    quiz: { q: "6時間睡眠を2週間続けると認知機能はどうなる？", choices: ["問題なし", "48時間徹夜と同等に低下", "少し眠いだけ"], answer: "48時間徹夜と同等に低下" }
+  },
+  {
+    category: "血圧の上昇", icon: "🩺",
+    title: "静かに血管を締め上げる",
+    body: "睡眠不足は交感神経を過剰に働かせ、高血圧リスクを約20%上昇させる。夜間に下がるべき血圧が下がらず、血管と心臓に24時間負荷がかかり続ける。自覚症状のないまま進行する。",
+    source: "高血圧に関する前向き研究メタ分析",
+    metric: "+20%", metricLabel: "高血圧リスク増加",
+    quiz: { q: "睡眠不足で高血圧リスクは約何%上がる？", choices: ["+2%", "+20%", "変化なし"], answer: "+20%" }
+  },
+  {
+    category: "脳のゴミ蓄積", icon: "🗑️",
+    title: "脳のゴミが排出されず溜まっていく",
+    body: "深い睡眠中、脳は老廃物アミロイドβ（アルツハイマー病の原因物質）を洗い流す。たった一晩の徹夜でも脳内に約5%蓄積する。夜更かしは、認知症の種を毎晩まいているのと同じ。",
+    source: "Science, 2013 / PNAS, 2018",
+    metric: "+5%", metricLabel: "一晩の徹夜での蓄積",
+    quiz: { q: "脳の老廃物アミロイドβはいつ排出される？", choices: ["起きて活動中", "深い睡眠中", "食事中"], answer: "深い睡眠中" }
   }
 ];
 
@@ -86,35 +148,72 @@ var RULES = [
   { icon: "🍳", text: "食事は時短に徹する。凝らない。" }
 ];
 
+var TIPS = [
+  "起床後1時間以内に屋外の光を10分浴びる。体内時計がリセットされ、夜の眠気が早まる。",
+  "カフェインは14時まで。コーヒーの効果は個人差はあるが6〜8時間続く。",
+  "入浴は就寝の1〜2時間前に。40℃に15分。深部体温が下がる反動で眠くなる。",
+  "寝室は18〜20℃に。暑すぎると深い睡眠が減る。",
+  "起床時刻は休日も±1時間以内に。規則性が睡眠の質を決める。",
+  "21時以降は部屋の照明を落とす。明るい光はメラトニンを止める。",
+  "仮眠は15時までに20分以内。長い昼寝は夜の睡眠を奪う。"
+];
+
+var LIGHTS_OPTIONS = [
+  { key: "before23", label: "〜23:00", color: "#22c55e" },
+  { key: "before2330", label: "〜23:30", color: "#84cc16" },
+  { key: "before24", label: "〜24:00", color: "#f59e0b" },
+  { key: "after24", label: "24:00以降", color: "#ef4444" }
+];
+
 var STORAGE_KEY = "sleep-coach-data";
+var QUEUE_KEY = "sleep-coach-queue";
+
+/* ============================================================
+   ユーティリティ
+   ============================================================ */
+// デバッグフック: ?h=21&d=5 で時刻・曜日を偽装（本番動作には無影響）
+var DEBUG = (function() {
+  var out = {};
+  try {
+    var p = new URLSearchParams(window.location.search);
+    if (p.has("h")) out.hour = parseInt(p.get("h"), 10);
+    if (p.has("d")) out.day = parseInt(p.get("d"), 10); // 0=日 .. 6=土
+  } catch (err) {}
+  return out;
+})();
+
+function getHour() {
+  if (typeof DEBUG.hour === "number" && !isNaN(DEBUG.hour)) return DEBUG.hour;
+  return new Date().getHours();
+}
+
+function getDayNum() {
+  if (typeof DEBUG.day === "number" && !isNaN(DEBUG.day)) return DEBUG.day;
+  return new Date().getDay();
+}
 
 function getToday() {
   var d = new Date();
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
 
-function getHour() { return new Date().getHours(); }
-
 function getDayOfWeek(dateStr) {
   var days = ["日", "月", "火", "水", "木", "金", "土"];
   return days[new Date(dateStr).getDay()];
 }
 
-function hashDate(str) {
+// 金(5)・土(6)・日(0) はフリー選択可能な日
+function isWeekendChoice() {
+  var d = getDayNum();
+  return d === 5 || d === 6 || d === 0;
+}
+
+function hashStr(str) {
   var h = 5381;
   for (var i = 0; i < str.length; i++) {
     h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
   }
   return h;
-}
-
-function shuffleFacts(today) {
-  var seed = hashDate(today);
-  return FACTS.slice().sort(function(a, b) {
-    var ha = hashDate(today + "-" + FACTS.indexOf(a)) % 9973;
-    var hb = hashDate(today + "-" + FACTS.indexOf(b)) % 9973;
-    return ha - hb;
-  }).slice(0, 4);
 }
 
 function assign() {
@@ -126,10 +225,80 @@ function assign() {
   return result;
 }
 
+function shuffleFacts(today) {
+  return FACTS.slice().sort(function(a, b) {
+    var ha = hashStr(today + "-" + FACTS.indexOf(a)) % 9973;
+    var hb = hashStr(today + "-" + FACTS.indexOf(b)) % 9973;
+    return ha - hb;
+  }).slice(0, 4);
+}
+
+// クイズ選択肢を日替わりでシャッフル
+function shuffleChoices(choices, today, salt) {
+  return choices.slice().sort(function(a, b) {
+    var ha = hashStr(today + salt + a) % 9973;
+    var hb = hashStr(today + salt + b) % 9973;
+    return ha - hb;
+  });
+}
+
 function todayRecord(data) {
   return data.history[getToday()] || {};
 }
 
+/* ============================================================
+   GAS連携（イベント送信 + オフラインキュー）
+   ============================================================ */
+function loadQueue() {
+  try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || []; } catch (err) { return []; }
+}
+function saveQueue(q) {
+  try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); } catch (err) {}
+}
+
+function postEvent(payload) {
+  // fetch を試み、失敗したらキューに積む
+  return fetch(GAS_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  }).then(function() { return true; }).catch(function() { return false; });
+}
+
+function sendEvent(event, detail) {
+  if (!GAS_URL) return; // 未設定ならローカルのみ
+  var payload = {
+    token: GAS_TOKEN,
+    date: getToday(),
+    event: event,
+    time: new Date().toISOString(),
+    detail: detail || ""
+  };
+  postEvent(payload).then(function(ok) {
+    if (!ok) {
+      var q = loadQueue();
+      q.push(payload);
+      saveQueue(q);
+    }
+  });
+}
+
+function flushQueue() {
+  if (!GAS_URL) return;
+  var q = loadQueue();
+  if (!q.length) return;
+  saveQueue([]); // 楽観的にクリア。失敗分は再度積まれる
+  q.forEach(function(payload) {
+    postEvent(payload).then(function(ok) {
+      if (!ok) { var cur = loadQueue(); cur.push(payload); saveQueue(cur); }
+    });
+  });
+}
+
+/* ============================================================
+   スタイル
+   ============================================================ */
 var S = {
   container: {
     minHeight: "100vh", backgroundColor: "#0a0a0a", color: "#e5e5e5",
@@ -143,55 +312,97 @@ var S = {
   factCard: { width: "100%", maxWidth: 400, backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "28px 22px", marginBottom: 20 },
   categoryBadge: { fontSize: 12, color: "#dc2626", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 20 },
   metricBlock: { marginBottom: 22 },
-  metricValue: { fontSize: 56, fontWeight: 800, color: "#dc2626", lineHeight: 1, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em" },
+  metricValue: { fontSize: 48, fontWeight: 800, color: "#dc2626", lineHeight: 1.05, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em" },
   metricLabel: { fontSize: 13, color: "#777", marginTop: 6 },
   factTitle: { fontSize: 20, fontWeight: 700, color: "#f5f5f5", lineHeight: 1.4, margin: "0 0 14px 0" },
   factBody: { fontSize: 15, lineHeight: 1.7, color: "#b0b0b0", marginBottom: 16 },
   factSource: { fontSize: 11, color: "#555", fontStyle: "italic" },
   nextBtn: { width: "100%", maxWidth: 400, padding: "16px 24px", backgroundColor: "#dc2626", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer", letterSpacing: "0.02em" },
+  // クイズ
+  quizPrompt: { fontSize: 13, color: "#dc2626", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 },
+  quizQuestion: { fontSize: 19, fontWeight: 700, color: "#f5f5f5", lineHeight: 1.5, marginBottom: 24 },
+  quizChoice: { width: "100%", padding: "16px 18px", backgroundColor: "#161616", color: "#e5e5e5", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: "pointer", marginBottom: 10, textAlign: "left", lineHeight: 1.4 },
+  quizChoiceWrong: { backgroundColor: "#2a0a0a", border: "1px solid #7f1d1d", color: "#888" },
+  quizHint: { fontSize: 13, color: "#ef4444", textAlign: "center", marginTop: 6, minHeight: 18 },
+  // ルール
   rulesTitle: { fontSize: 22, fontWeight: 700, color: "#f5f5f5", margin: "10px 0 20px 0" },
-  rulesList: { width: "100%", maxWidth: 400, marginBottom: 24 },
+  rulesList: { width: "100%", maxWidth: 400, marginBottom: 20 },
   ruleItem: { display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 10, marginBottom: 8 },
   ruleIcon: { fontSize: 22, flexShrink: 0 },
   ruleText: { fontSize: 15, color: "#d4d4d4", lineHeight: 1.5 },
+  // 記述欄
+  intentionBlock: { width: "100%", maxWidth: 400, marginBottom: 20 },
+  intentionLabel: { fontSize: 15, fontWeight: 700, color: "#f5f5f5", marginBottom: 6 },
+  intentionHint: { fontSize: 12, color: "#666", marginBottom: 10, lineHeight: 1.5 },
+  intentionArea: { width: "100%", minHeight: 72, padding: "12px 14px", backgroundColor: "#111", color: "#f5f5f5", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 15, fontFamily: "inherit", lineHeight: 1.5, resize: "vertical" },
+  intentionCount: { fontSize: 11, color: "#555", textAlign: "right", marginTop: 4 },
   ackBtn: { width: "100%", maxWidth: 400, padding: "16px 24px", backgroundColor: "#222", color: "#999", border: "1px solid #333", borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: "pointer", marginTop: 8 },
   commitBtn: { width: "100%", maxWidth: 400, padding: "18px 24px", backgroundColor: "#dc2626", color: "#fff", border: "none", borderRadius: 10, fontSize: 17, fontWeight: 800, cursor: "pointer", marginTop: 8, letterSpacing: "0.02em" },
+  commitBtnDisabled: { backgroundColor: "#3a1414", color: "#7a5555", cursor: "not-allowed" },
   streakBanner: { fontSize: 16, fontWeight: 700, color: "#f59e0b", textAlign: "center", padding: "10px 0", marginBottom: 16 },
-  weekGrid: { display: "flex", gap: 8, justifyContent: "center", marginBottom: 24, width: "100%", maxWidth: 400 },
+  weekGrid: { display: "flex", gap: 8, justifyContent: "center", marginBottom: 8, width: "100%", maxWidth: 400 },
   weekDay: { display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 },
   weekDayLabel: { fontSize: 11, color: "#555" },
-  weekDot: { width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff" },
+  weekDot: { width: 34, height: 34, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#fff" },
+  lightsRow: { display: "flex", gap: 8, justifyContent: "center", marginBottom: 24, width: "100%", maxWidth: 400 },
+  lightsCell: { flex: 1, display: "flex", justifyContent: "center" },
+  lightsBar: { width: 20, height: 6, borderRadius: 3 },
+  sectionLabel: { fontSize: 11, color: "#555", textAlign: "center", marginBottom: 6, letterSpacing: "0.05em" },
+  // 朝
   morningCard: { maxWidth: 400, width: "100%", backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "32px 22px", textAlign: "center", marginTop: 40 },
   morningTitle: { fontSize: 20, fontWeight: 700, color: "#f5f5f5", margin: "0 0 12px 0" },
   morningBody: { fontSize: 15, color: "#999", marginBottom: 24 },
-  morningButtons: { display: "flex", gap: 12 },
+  morningButtons: { display: "flex", gap: 12, marginBottom: 8 },
   successBtn: { flex: 1, padding: "14px 0", backgroundColor: "#14532d", color: "#22c55e", border: "1px solid #166534", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer" },
   failBtn: { flex: 1, padding: "14px 0", backgroundColor: "#450a0a", color: "#ef4444", border: "1px solid #7f1d1d", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer" },
   morningResult: { padding: "12px 0" },
+  lightsQuestion: { fontSize: 15, fontWeight: 700, color: "#f5f5f5", marginBottom: 14, marginTop: 8 },
+  lightsChoiceRow: { display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" },
+  lightsChoiceBtn: { flex: "1 1 45%", padding: "14px 0", backgroundColor: "#161616", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer" },
+  // done
   doneCard: { maxWidth: 400, width: "100%", textAlign: "center", marginTop: 40 },
   doneTitle: { fontSize: 22, fontWeight: 700, color: "#f5f5f5", margin: "0 0 10px 0" },
   doneBody: { fontSize: 15, color: "#777", marginBottom: 24 },
-  countdown: { backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "20px", marginBottom: 20 },
+  countdown: { backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "20px", marginBottom: 16 },
   countdownLabel: { fontSize: 12, color: "#555", marginBottom: 6, letterSpacing: "0.1em", textTransform: "uppercase" },
   countdownValue: { fontSize: 32, fontWeight: 800, color: "#dc2626", fontVariantNumeric: "tabular-nums" },
-  doneReminder: { fontSize: 14, color: "#888", lineHeight: 1.8, whiteSpace: "pre-line", backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "16px 20px", textAlign: "left" },
+  tipCard: { backgroundColor: "#0f1420", border: "1px solid #1e293b", borderRadius: 12, padding: "16px 18px", marginBottom: 16, textAlign: "left" },
+  tipLabel: { fontSize: 11, color: "#60a5fa", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 },
+  tipText: { fontSize: 14, color: "#cbd5e1", lineHeight: 1.6 },
   resetBtn: { marginTop: 32, padding: "10px 20px", backgroundColor: "transparent", color: "#444", border: "1px solid #222", borderRadius: 8, fontSize: 12, cursor: "pointer" },
+  // アクション（20:00 / 23:00）
   actionCard: { maxWidth: 400, width: "100%", backgroundColor: "#111", border: "2px solid #dc2626", borderRadius: 16, padding: "36px 24px", textAlign: "center", marginTop: 30 },
   actionIcon: { fontSize: 56, marginBottom: 16 },
   actionTitle: { fontSize: 22, fontWeight: 800, color: "#f5f5f5", margin: "0 0 12px 0", lineHeight: 1.3 },
-  actionBody: { fontSize: 15, color: "#999", lineHeight: 1.7, marginBottom: 24 },
+  actionBody: { fontSize: 15, color: "#999", lineHeight: 1.7, marginBottom: 20, whiteSpace: "pre-line" },
   actionTime: { fontSize: 13, color: "#dc2626", fontWeight: 700, letterSpacing: "0.08em", marginBottom: 20 },
   actionConfirmBtn: { width: "100%", padding: "18px 24px", backgroundColor: "#dc2626", color: "#fff", border: "none", borderRadius: 12, fontSize: 17, fontWeight: 800, cursor: "pointer", letterSpacing: "0.02em" },
-  actionDoneMsg: { fontSize: 18, fontWeight: 700, color: "#22c55e", padding: "16px 0" },
   actionChecklist: { textAlign: "left", marginBottom: 24, padding: "16px 20px", backgroundColor: "#0a0a0a", borderRadius: 10 },
   actionCheckItem: { display: "flex", alignItems: "center", gap: 10, padding: "8px 0", fontSize: 14, color: "#b0b0b0" },
   actionCheckDone: { color: "#22c55e", textDecoration: "line-through" },
+  intentionRecall: { backgroundColor: "#0a0a0a", border: "1px dashed #333", borderRadius: 10, padding: "14px 16px", marginBottom: 20, textAlign: "left" },
+  intentionRecallLabel: { fontSize: 11, color: "#666", marginBottom: 6 },
+  intentionRecallText: { fontSize: 15, color: "#f59e0b", fontWeight: 600, lineHeight: 1.5, fontStyle: "italic" },
   goodnightCard: { maxWidth: 400, width: "100%", textAlign: "center", marginTop: 60 },
   goodnightIcon: { fontSize: 64, marginBottom: 16 },
   goodnightTitle: { fontSize: 24, fontWeight: 800, color: "#f5f5f5", margin: "0 0 12px 0" },
-  goodnightBody: { fontSize: 16, color: "#777", lineHeight: 1.6 }
+  goodnightBody: { fontSize: 16, color: "#777", lineHeight: 1.6, whiteSpace: "pre-line" },
+  // 週末フリー選択
+  choiceCard: { maxWidth: 400, width: "100%", textAlign: "center", marginTop: 50 },
+  choiceIcon: { fontSize: 48, marginBottom: 16 },
+  choiceTitle: { fontSize: 24, fontWeight: 800, color: "#f5f5f5", margin: "0 0 10px 0" },
+  choiceBody: { fontSize: 15, color: "#999", marginBottom: 32, lineHeight: 1.6 },
+  choiceExecBtn: { width: "100%", padding: "18px 24px", backgroundColor: "#dc2626", color: "#fff", border: "none", borderRadius: 12, fontSize: 17, fontWeight: 800, cursor: "pointer", marginBottom: 12, letterSpacing: "0.02em" },
+  choiceFreeBtn: { width: "100%", padding: "16px 24px", backgroundColor: "transparent", color: "#888", border: "1px solid #333", borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: "pointer" },
+  restCard: { maxWidth: 400, width: "100%", textAlign: "center", marginTop: 70 },
+  restIcon: { fontSize: 64, marginBottom: 16 },
+  restTitle: { fontSize: 24, fontWeight: 800, color: "#60a5fa", margin: "0 0 12px 0" },
+  restBody: { fontSize: 16, color: "#888", lineHeight: 1.7, whiteSpace: "pre-line" }
 };
 
+/* ============================================================
+   メインコンポーネント
+   ============================================================ */
 function SleepCoach() {
   var phaseState = useState("loading");
   var phase = phaseState[0], setPhase = phaseState[1];
@@ -199,8 +410,20 @@ function SleepCoach() {
   var factIndexState = useState(0);
   var factIndex = factIndexState[0], setFactIndex = factIndexState[1];
 
+  var factRevealedState = useState(false); // クイズ正解でファクト本文を開放
+  var factRevealed = factRevealedState[0], setFactRevealed = factRevealedState[1];
+
+  var wrongState = useState({}); // {choice: true} 不正解マーク
+  var wrong = wrongState[0], setWrong = wrongState[1];
+
+  var shakeState = useState(false);
+  var shake = shakeState[0], setShake = shakeState[1];
+
   var rulesAckedState = useState(false);
   var rulesAcked = rulesAckedState[0], setRulesAcked = rulesAckedState[1];
+
+  var intentionState = useState("");
+  var intention = intentionState[0], setIntention = intentionState[1];
 
   var dataState = useState({ streak: 0, history: {}, lastCheckIn: null });
   var data = dataState[0], setData = dataState[1];
@@ -220,27 +443,38 @@ function SleepCoach() {
     if (!loadedData) { loadedData = { streak: 0, history: {}, lastCheckIn: null }; }
 
     setData(loadedData);
+    flushQueue(); // 溜まった未送信イベントを再送
 
     var today = getToday();
     setTodayFacts(shuffleFacts(today));
+    setPhase(decidePhase(loadedData));
+  }, []);
 
-    var rec = loadedData.history[today] || {};
+  // 状況からフェーズを決定
+  function decidePhase(d) {
+    var today = getToday();
+    var rec = d.history[today] || {};
     var hour = getHour();
 
-    if (loadedData.lastCheckIn && loadedData.lastCheckIn !== today && loadedData.history[loadedData.lastCheckIn] && !loadedData.history[loadedData.lastCheckIn].result) {
-      setPhase("morning");
-    } else if (!rec.committed) {
-      setPhase("facts");
-    } else if (hour >= 23 && !rec.phoneOut) {
-      setPhase("phone");
-    } else if (hour >= 20 && !rec.youtubeOff) {
-      setPhase("youtube");
-    } else if (hour >= 23 && rec.phoneOut) {
-      setPhase("goodnight");
-    } else {
-      setPhase("done");
+    // 朝の未報告（前日が実行日=committedかつrestDayでない、かつ結果未報告）
+    if (d.lastCheckIn && d.lastCheckIn !== today) {
+      var prev = d.history[d.lastCheckIn];
+      if (prev && prev.committed && !prev.restDay && !prev.result) {
+        return "morning";
+      }
     }
-  }, []);
+
+    if (rec.restDay) return "rest";           // 今日はフリーを選択済み
+    if (rec.committed) {
+      if (hour >= 23 && !rec.phoneOut) return "phone";
+      if (hour >= 20 && !rec.youtubeOff) return "youtube";
+      if (hour >= 23 && rec.phoneOut) return "goodnight";
+      return "done";
+    }
+    // 未チェックイン
+    if (isWeekendChoice()) return "choice";    // 金土日は選択から
+    return "facts";
+  }
 
   function saveData(newData) {
     setData(newData);
@@ -254,16 +488,50 @@ function SleepCoach() {
     saveData(assign({}, data, { history: newHistory }));
   }
 
-  function handleNextFact() {
-    if (factIndex < todayFacts.length - 1) { setFactIndex(factIndex + 1); }
-    else { setPhase("rules"); }
+  // --- クイズ回答 ---
+  function handleAnswer(choice, correct) {
+    if (choice === correct) {
+      setFactRevealed(true);
+    } else {
+      var w = assign({}, wrong); w[choice] = true; setWrong(w);
+      setShake(true);
+      setTimeout(function() { setShake(false); }, 400);
+    }
   }
 
-  function handleCommit() {
+  function handleNextFact() {
+    if (factIndex < todayFacts.length - 1) {
+      setFactIndex(factIndex + 1);
+      setFactRevealed(false);
+      setWrong({});
+    } else {
+      setPhase("rules");
+    }
+  }
+
+  // --- 週末フリー選択 ---
+  function handleChooseExec() {
+    setPhase("facts");
+  }
+  function handleChooseFree() {
     var today = getToday();
     var newHistory = assign({}, data.history);
-    newHistory[today] = assign({}, newHistory[today], { committed: true, time: new Date().toISOString() });
+    newHistory[today] = { restDay: true, time: new Date().toISOString() };
     saveData(assign({}, data, { history: newHistory, lastCheckIn: today }));
+    sendEvent("restDay", getDayOfWeek(today));
+    setPhase("rest");
+  }
+
+  // --- 誓い ---
+  function handleCommit() {
+    if (intention.trim().length < 5) return;
+    var today = getToday();
+    var newHistory = assign({}, data.history);
+    newHistory[today] = assign({}, newHistory[today], {
+      committed: true, time: new Date().toISOString(), intention: intention.trim()
+    });
+    saveData(assign({}, data, { history: newHistory, lastCheckIn: today }));
+    sendEvent("committed", intention.trim());
     var hour = getHour();
     if (hour >= 23) { setPhase("phone"); }
     else if (hour >= 20) { setPhase("youtube"); }
@@ -272,14 +540,17 @@ function SleepCoach() {
 
   function handleYoutubeOff() {
     updateTodayRecord({ youtubeOff: true, youtubeOffTime: new Date().toISOString() });
+    sendEvent("youtubeOff");
     setPhase("done");
   }
 
   function handlePhoneOut() {
     updateTodayRecord({ phoneOut: true, phoneOutTime: new Date().toISOString() });
+    sendEvent("phoneOut");
     setPhase("goodnight");
   }
 
+  // --- 朝の報告 ---
   function handleMorningReport(success) {
     setMorningResult(success);
     var yesterday = data.lastCheckIn;
@@ -288,72 +559,159 @@ function SleepCoach() {
     newHistory[yesterday] = assign({}, newHistory[yesterday], { result: success });
     var newStreak = success ? data.streak + 1 : 0;
     saveData(assign({}, data, { history: newHistory, streak: newStreak }));
-    setTimeout(function() { setPhase("facts"); setMorningResult(null); }, 2000);
+    sendEvent("morning", success ? "success" : "fail");
+    // 消灯時刻の質問へ（successの時のみ）。failなら次へ
+    if (!success) {
+      setTimeout(function() { advanceAfterMorning(); }, 1800);
+    }
+  }
+
+  function handleLightsReport(optKey) {
+    var yesterday = data.lastCheckIn;
+    if (yesterday) {
+      var newHistory = assign({}, data.history);
+      newHistory[yesterday] = assign({}, newHistory[yesterday], { lightsOut: optKey });
+      saveData(assign({}, data, { history: newHistory }));
+      sendEvent("lightsOut", optKey);
+    }
+    advanceAfterMorning();
+  }
+
+  function advanceAfterMorning() {
+    setMorningResult(null);
+    // 報告後、今日のフェーズを再決定（データは最新のstateを使うためsetTimeoutで）
+    var today = getToday();
+    var rec = data.history[today] || {};
+    if (rec.restDay) { setPhase("rest"); }
+    else if (rec.committed) { setPhase("done"); }
+    else if (isWeekendChoice()) { setPhase("choice"); }
+    else { setPhase("facts"); }
   }
 
   function handleReset() {
     saveData({ streak: 0, history: {}, lastCheckIn: null });
     setFactIndex(0);
+    setFactRevealed(false);
+    setWrong({});
     setRulesAcked(false);
-    setPhase("facts");
+    setIntention("");
+    setPhase(isWeekendChoice() ? "choice" : "facts");
   }
 
+  // 週間データ
   var recentDays = [];
   for (var i = 6; i >= 0; i--) {
-    var d = new Date();
-    d.setDate(d.getDate() - i);
-    var key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    var dd = new Date();
+    dd.setDate(dd.getDate() - i);
+    var key = dd.getFullYear() + "-" + String(dd.getMonth() + 1).padStart(2, "0") + "-" + String(dd.getDate()).padStart(2, "0");
     recentDays.push(assign({ date: key, day: getDayOfWeek(key) }, data.history[key]));
   }
 
   var rec = todayRecord(data);
+  var today = getToday();
 
-  // --- LOADING ---
+  // ============ 画面 ============
+
   if (phase === "loading") {
+    return e("div", { style: S.container }, e("div", { style: S.loadingText }, "読み込み中..."));
+  }
+
+  // --- 週末フリー選択 ---
+  if (phase === "choice") {
     return e("div", { style: S.container },
-      e("div", { style: S.loadingText }, "読み込み中...")
+      e("div", { style: S.choiceCard },
+        e("div", { style: S.choiceIcon }, "🌆"),
+        e("h2", { style: S.choiceTitle }, getDayOfWeek(today) + "曜日の夜"),
+        e("p", { style: S.choiceBody }, "今夜はどうする？\n無理のない範囲で、正直に選べ。"),
+        e("button", { style: S.choiceExecBtn, onClick: handleChooseExec }, "今夜も23:00消灯を守る"),
+        e("button", { style: S.choiceFreeBtn, onClick: handleChooseFree }, "今夜はフリー（夜更かしOK）")
+      )
     );
   }
 
-  // --- MORNING REPORT ---
+  // --- フリー日 ---
+  if (phase === "rest") {
+    return e("div", { style: S.container },
+      e("div", { style: S.restCard },
+        e("div", { style: S.restIcon }, "🍷"),
+        e("h2", { style: S.restTitle }, "今夜はフリー"),
+        e("p", { style: S.restBody }, "良い週末を。\nただし翌日に響かせるな。\n\n夜更かししても、起きる時刻だけは\nできるだけ守ると回復が早い。"),
+        data.streak > 0 ? e("div", { style: assign({}, S.streakBanner, { marginTop: 24 }) }, "🔥 連続達成: " + data.streak + "日（維持中）") : null,
+        e("button", { style: S.resetBtn, onClick: handleReset }, "リセット（テスト用）")
+      )
+    );
+  }
+
+  // --- 朝の報告 ---
   if (phase === "morning") {
     var morningContent;
     if (morningResult === null) {
-      morningContent = e("div", { style: S.morningButtons },
-        e("button", { style: S.successBtn, onClick: function() { handleMorningReport(true); } }, "✓ できた"),
-        e("button", { style: S.failBtn, onClick: function() { handleMorningReport(false); } }, "✗ できなかった")
+      morningContent = e("div", null,
+        e("p", { style: S.morningBody }, "23:00までにスマホを手放して消灯できましたか？"),
+        e("div", { style: S.morningButtons },
+          e("button", { style: S.successBtn, onClick: function() { handleMorningReport(true); } }, "✓ できた"),
+          e("button", { style: S.failBtn, onClick: function() { handleMorningReport(false); } }, "✗ できなかった")
+        )
+      );
+    } else if (morningResult === true) {
+      // 消灯時刻を質問
+      morningContent = e("div", null,
+        e("p", { style: { color: "#22c55e", fontSize: 16, fontWeight: 700, marginBottom: 4 } }, "素晴らしい。"),
+        e("div", { style: S.lightsQuestion }, "実際に消灯したのは何時ごろ？"),
+        e("div", { style: S.lightsChoiceRow },
+          LIGHTS_OPTIONS.map(function(opt) {
+            return e("button", {
+              key: opt.key,
+              style: assign({}, S.lightsChoiceBtn, { color: opt.color, borderColor: opt.color + "55" }),
+              onClick: function() { handleLightsReport(opt.key); }
+            }, opt.label);
+          })
+        )
       );
     } else {
       morningContent = e("div", { style: S.morningResult },
-        morningResult
-          ? e("p", { style: { color: "#22c55e", fontSize: 18, fontWeight: 700 } }, "記録しました。継続していきましょう。")
-          : e("p", { style: { color: "#f59e0b", fontSize: 18, fontWeight: 700 } }, "正直に報告できたことが大事です。今夜こそ。")
+        e("p", { style: { color: "#f59e0b", fontSize: 18, fontWeight: 700 } }, "正直に報告できたことが大事です。今夜こそ。")
       );
     }
     return e("div", { style: S.container },
       e("div", { style: S.morningCard },
         e("div", { style: { fontSize: 40, marginBottom: 12 } }, "🌅"),
         e("h2", { style: S.morningTitle }, "昨夜の結果報告"),
-        e("p", { style: S.morningBody }, "23:00までにスマホを手放して消灯できましたか？"),
         morningContent
       )
     );
   }
 
-  // --- FACTS ---
+  // --- ファクト（クイズ→本文） ---
   if (phase === "facts") {
     var fact = todayFacts[factIndex];
     if (!fact) return null;
     var progress = factIndex + 1;
     var total = todayFacts.length;
+    var choices = shuffleChoices(fact.quiz.choices, today, "-q" + factIndex);
 
-    return e("div", { style: S.container },
-      e("div", { style: S.progressBar },
-        e("div", { style: assign({}, S.progressFill, { width: (progress / total * 100) + "%" }) })
-      ),
-      e("div", { style: S.progressLabel }, progress + " / " + total),
-      e("div", { style: S.factCard },
+    var cardInner;
+    if (!factRevealed) {
+      // クイズ出題
+      cardInner = e("div", { style: assign({}, S.factCard, shake ? { animation: "shake 0.4s" } : {}) },
         e("div", { style: S.categoryBadge }, fact.icon + " " + fact.category),
+        e("div", { style: S.quizPrompt }, "問題"),
+        e("div", { style: S.quizQuestion }, fact.quiz.q),
+        choices.map(function(c) {
+          var isWrong = wrong[c];
+          return e("button", {
+            key: c,
+            disabled: isWrong,
+            style: assign({}, S.quizChoice, isWrong ? S.quizChoiceWrong : {}),
+            onClick: function() { handleAnswer(c, fact.quiz.answer); }
+          }, (isWrong ? "✗ " : "") + c);
+        }),
+        e("div", { style: S.quizHint }, Object.keys(wrong).length > 0 ? "不正解。正しい答えを選べ。" : "")
+      );
+    } else {
+      // 正解 → ファクト本文
+      cardInner = e("div", { style: S.factCard },
+        e("div", { style: S.categoryBadge }, "✓ 正解 — " + fact.category),
         e("div", { style: S.metricBlock },
           e("div", { style: S.metricValue }, fact.metric),
           e("div", { style: S.metricLabel }, fact.metricLabel)
@@ -361,85 +719,136 @@ function SleepCoach() {
         e("h2", { style: S.factTitle }, fact.title),
         e("p", { style: S.factBody }, fact.body),
         e("p", { style: S.factSource }, fact.source)
+      );
+    }
+
+    return e("div", { style: S.container },
+      e("div", { style: S.progressBar },
+        e("div", { style: assign({}, S.progressFill, { width: (progress / total * 100) + "%" }) })
       ),
-      e("button", { style: S.nextBtn, onClick: handleNextFact },
-        factIndex < todayFacts.length - 1 ? "次の事実を見る →" : "ルール確認へ →"
-      )
+      e("div", { style: S.progressLabel }, progress + " / " + total),
+      cardInner,
+      factRevealed
+        ? e("button", { style: S.nextBtn, onClick: handleNextFact },
+            factIndex < todayFacts.length - 1 ? "次の問題へ →" : "ルール確認へ →")
+        : null
     );
   }
 
-  // --- RULES ---
+  // --- ルール + 記述欄 ---
   if (phase === "rules") {
-    var ruleItems = RULES.map(function(r, i) {
-      return e("div", { key: i, style: S.ruleItem },
+    var ruleItems = RULES.map(function(r, idx) {
+      return e("div", { key: idx, style: S.ruleItem },
         e("span", { style: S.ruleIcon }, r.icon),
         e("span", { style: S.ruleText }, r.text)
       );
     });
 
-    var weekDots = recentDays.map(function(d, i) {
-      var bg = d.result === true ? "#22c55e" : d.result === false ? "#ef4444" : d.committed ? "#f59e0b" : "#333";
-      var label = d.result === true ? "✓" : d.result === false ? "✗" : d.committed ? "−" : "";
-      return e("div", { key: i, style: S.weekDay },
-        e("div", { style: S.weekDayLabel }, d.day),
+    var weekDots = recentDays.map(function(dw, idx) {
+      var bg, label;
+      if (dw.restDay) { bg = "#2563eb"; label = "休"; }
+      else if (dw.result === true) { bg = "#22c55e"; label = "✓"; }
+      else if (dw.result === false) { bg = "#ef4444"; label = "✗"; }
+      else if (dw.committed) { bg = "#f59e0b"; label = "−"; }
+      else { bg = "#333"; label = ""; }
+      return e("div", { key: idx, style: S.weekDay },
+        e("div", { style: S.weekDayLabel }, dw.day),
         e("div", { style: assign({}, S.weekDot, { backgroundColor: bg }) }, label)
       );
     });
 
-    var bottomBtn = !rulesAcked
-      ? e("button", { style: S.ackBtn, onClick: function() { setRulesAcked(true); } }, "理解した。すべて読んだ。")
-      : e("button", { style: S.commitBtn, onClick: handleCommit }, "今夜、23:00に消灯することを誓う");
+    var lightsBars = recentDays.map(function(dw, idx) {
+      var opt = null;
+      for (var j = 0; j < LIGHTS_OPTIONS.length; j++) { if (LIGHTS_OPTIONS[j].key === dw.lightsOut) opt = LIGHTS_OPTIONS[j]; }
+      return e("div", { key: idx, style: S.lightsCell },
+        e("div", { style: assign({}, S.lightsBar, { backgroundColor: opt ? opt.color : "#1a1a1a" }) })
+      );
+    });
+
+    var canCommit = intention.trim().length >= 5;
+    var bottomBtn;
+    if (!rulesAcked) {
+      bottomBtn = e("button", { style: S.ackBtn, onClick: function() { setRulesAcked(true); } }, "理解した。すべて読んだ。");
+    } else {
+      bottomBtn = e("div", null,
+        e("div", { style: S.intentionBlock },
+          e("div", { style: S.intentionLabel }, "今夜の最大の敵は？その対策は？"),
+          e("div", { style: S.intentionHint }, "例）敵＝夕食後のYouTube／対策＝食べ終わったらすぐ風呂に入る"),
+          e("textarea", {
+            style: S.intentionArea,
+            value: intention,
+            placeholder: "ここに1文書く（5文字以上）",
+            onChange: function(ev) { setIntention(ev.target.value); }
+          }),
+          e("div", { style: S.intentionCount }, intention.trim().length + " 文字")
+        ),
+        e("button", {
+          style: assign({}, S.commitBtn, canCommit ? {} : S.commitBtnDisabled),
+          disabled: !canCommit,
+          onClick: handleCommit
+        }, canCommit ? "今夜、23:00に消灯することを誓う" : "対策を書くと誓えます")
+      );
+    }
 
     return e("div", { style: S.container },
       e("h2", { style: S.rulesTitle }, "今夜守る4つのルール"),
       e("div", { style: S.rulesList }, ruleItems),
       data.streak > 0 ? e("div", { style: S.streakBanner }, "🔥 現在の連続達成: " + data.streak + "日") : null,
       e("div", { style: S.weekGrid }, weekDots),
+      e("div", { style: S.sectionLabel }, "消灯時刻の記録"),
+      e("div", { style: S.lightsRow }, lightsBars),
       bottomBtn
     );
   }
 
-  // --- YOUTUBE OFF (20:00~) ---
+  // 共通: intention再表示ブロック
+  function intentionRecall() {
+    if (!rec.intention) return null;
+    return e("div", { style: S.intentionRecall },
+      e("div", { style: S.intentionRecallLabel }, "今朝のあなたの誓い:"),
+      e("div", { style: S.intentionRecallText }, "「" + rec.intention + "」")
+    );
+  }
+
+  // --- YouTube (20:00~) ---
   if (phase === "youtube") {
     return e("div", { style: S.container },
       e("div", { style: S.actionCard },
         e("div", { style: S.actionIcon }, "📵"),
         e("div", { style: S.actionTime }, "20:00 — アクション必須"),
         e("h2", { style: S.actionTitle }, "YouTubeを今すぐ閉じろ"),
-        e("p", { style: S.actionBody },
-          "食後のダラダラ視聴が睡眠時間を奪う最大の原因。\n「あと1本」はない。今閉じなければ23:00消灯は不可能。"),
+        intentionRecall(),
+        e("p", { style: S.actionBody }, "食後のダラダラ視聴が睡眠時間を奪う最大の原因。\n「あと1本」はない。今閉じなければ23:00消灯は不可能。"),
         e("div", { style: S.actionChecklist },
           e("div", { style: S.actionCheckItem }, "1. YouTubeアプリを閉じる"),
           e("div", { style: S.actionCheckItem }, "2. X（Twitter）も閉じる"),
           e("div", { style: S.actionCheckItem }, "3. Amazon・メルカリも閲覧しない")
         ),
-        e("button", { style: S.actionConfirmBtn, onClick: handleYoutubeOff },
-          "すべて閉じた。確認する。")
+        e("button", { style: S.actionConfirmBtn, onClick: handleYoutubeOff }, "すべて閉じた。確認する。")
       )
     );
   }
 
-  // --- PHONE OUT (23:00~) ---
+  // --- Phone (23:00~) ---
   if (phase === "phone") {
     return e("div", { style: S.container },
       e("div", { style: assign({}, S.actionCard, { borderColor: "#f59e0b" }) },
         e("div", { style: S.actionIcon }, "🚪"),
         e("div", { style: assign({}, S.actionTime, { color: "#f59e0b" }) }, "23:00 — 最終アクション"),
         e("h2", { style: S.actionTitle }, "スマホをリビングに置け"),
-        e("p", { style: S.actionBody },
-          "寝室にスマホを持ち込んだ時点で負け。\n目覚ましはスマートウォッチで十分。今すぐ手放せ。"),
+        intentionRecall(),
+        e("p", { style: S.actionBody }, "寝室にスマホを持ち込んだ時点で負け。\n目覚ましはスマートウォッチで十分。今すぐ手放せ。"),
         e("div", { style: S.actionChecklist },
           e("div", { style: S.actionCheckItem }, "1. おやすみモードをONにする"),
           e("div", { style: S.actionCheckItem }, "2. スマホをリビングの充電器に置く"),
           e("div", { style: S.actionCheckItem }, "3. 寝室に入る → 消灯")
         ),
-        e("button", { style: assign({}, S.actionConfirmBtn, { backgroundColor: "#f59e0b", color: "#000" }), onClick: handlePhoneOut },
-          "スマホを置いた。おやすみ。")
+        e("button", { style: assign({}, S.actionConfirmBtn, { backgroundColor: "#f59e0b", color: "#000" }), onClick: handlePhoneOut }, "スマホを置いた。おやすみ。")
       )
     );
   }
 
-  // --- GOODNIGHT ---
+  // --- Goodnight ---
   if (phase === "goodnight") {
     return e("div", { style: S.container },
       e("div", { style: S.goodnightCard },
@@ -457,13 +866,12 @@ function SleepCoach() {
     );
   }
 
-  // --- DONE (checkin complete, waiting for next action) ---
+  // --- Done ---
   if (phase === "done") {
     var now = new Date();
-    var hour = now.getHours();
+    var hour = getHour();
 
-    var nextAction = null;
-    var nextTime = null;
+    var nextAction = null, nextTime = null;
     if (!rec.youtubeOff && hour < 20) {
       nextAction = "📵 YouTubeを閉じる";
       nextTime = new Date(); nextTime.setHours(20, 0, 0, 0);
@@ -481,6 +889,8 @@ function SleepCoach() {
     var nextH = diffNext > 0 ? Math.floor(diffNext / 3600000) : 0;
     var nextM = diffNext > 0 ? Math.floor((diffNext % 3600000) / 60000) : 0;
 
+    var tip = TIPS[hashStr(today) % TIPS.length];
+
     return e("div", { style: S.container },
       e("div", { style: S.doneCard },
         e("div", { style: { fontSize: 48, marginBottom: 8 } }, "✅"),
@@ -495,13 +905,14 @@ function SleepCoach() {
           e("div", { style: { fontSize: 16, fontWeight: 700, color: "#f5f5f5", marginBottom: 4 } }, nextAction),
           e("div", { style: { fontSize: 14, color: "#f59e0b" } }, nextH + "時間 " + nextM + "分後")
         ) : null,
+        e("div", { style: S.tipCard },
+          e("div", { style: S.tipLabel }, "💡 今夜の睡眠Tip"),
+          e("div", { style: S.tipText }, tip)
+        ),
         e("div", { style: S.actionChecklist },
-          e("div", { style: assign({}, S.actionCheckItem, rec.committed ? S.actionCheckDone : {}) },
-            (rec.committed ? "✓ " : "○ ") + "チェックイン"),
-          e("div", { style: assign({}, S.actionCheckItem, rec.youtubeOff ? S.actionCheckDone : {}) },
-            (rec.youtubeOff ? "✓ " : "○ ") + "YouTube・SNS終了（20:00）"),
-          e("div", { style: assign({}, S.actionCheckItem, rec.phoneOut ? S.actionCheckDone : {}) },
-            (rec.phoneOut ? "✓ " : "○ ") + "スマホ追放（23:00）")
+          e("div", { style: assign({}, S.actionCheckItem, rec.committed ? S.actionCheckDone : {}) }, (rec.committed ? "✓ " : "○ ") + "チェックイン"),
+          e("div", { style: assign({}, S.actionCheckItem, rec.youtubeOff ? S.actionCheckDone : {}) }, (rec.youtubeOff ? "✓ " : "○ ") + "YouTube・SNS終了（20:00）"),
+          e("div", { style: assign({}, S.actionCheckItem, rec.phoneOut ? S.actionCheckDone : {}) }, (rec.phoneOut ? "✓ " : "○ ") + "スマホ追放（23:00）")
         ),
         data.streak > 0 ? e("div", { style: assign({}, S.streakBanner, { marginTop: 20 }) }, "🔥 連続達成: " + data.streak + "日") : null,
         e("button", { style: S.resetBtn, onClick: handleReset }, "リセット（テスト用）")
