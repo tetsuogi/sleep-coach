@@ -12,9 +12,13 @@
    ------------------------------------------------------------ */
 var TOKEN = "kaeru-no-uta-1234";      // アプリ側 GAS_TOKEN と完全に一致させる合言葉（好きな文字列に）
 
-var NOTIFY_METHOD = "pushover";        // "pushover" / "ntfy" / "email" のいずれか
+var NOTIFY_METHOD = "telegram";        // "telegram" / "pushover" / "ntfy" / "email" のいずれか
 
-// ▼ Pushover を使う場合（推奨）
+// ▼ Telegram を使う場合（完全無料・推奨）
+var TELEGRAM_BOT_TOKEN = "";           // @BotFather で作ったボットのトークン
+var TELEGRAM_CHAT_ID  = "";            // 自分のチャットID（数字）
+
+// ▼ Pushover を使う場合（買い切り・消音/集中モードも貫通できる）
 var PUSHOVER_TOKEN = "";               // Pushoverで作成したアプリのAPIトークン
 var PUSHOVER_USER  = "";               // Pushoverのユーザーキー
 var PUSHOVER_PRIORITY = 1;             // 1=高（音が鳴る）/ 2=緊急（消音・集中モードも貫通、要クリティカル許可）
@@ -118,7 +122,14 @@ function getDayEvents(dateStr) {
    通知の送信（3方式を NOTIFY_METHOD で切替）
    ------------------------------------------------------------ */
 function notify(title, message) {
-  if (NOTIFY_METHOD === "pushover") {
+  if (NOTIFY_METHOD === "telegram") {
+    UrlFetchApp.fetch("https://api.telegram.org/bot" + TELEGRAM_BOT_TOKEN + "/sendMessage", {
+      method: "post",
+      payload: { chat_id: TELEGRAM_CHAT_ID, text: title + "\n" + message },
+      muteHttpExceptions: true
+    });
+
+  } else if (NOTIFY_METHOD === "pushover") {
     var payload = {
       token: PUSHOVER_TOKEN,
       user: PUSHOVER_USER,
