@@ -10,7 +10,7 @@
 /* ------------------------------------------------------------
    設定 — ここだけ自分の値に書き換える
    ------------------------------------------------------------ */
-var TOKEN = "kaeru-no-uta-1234";      // アプリ側 GAS_TOKEN と完全に一致させる合言葉（好きな文字列に）
+var TOKEN = "usaji-3355102";           // アプリ側 GAS_TOKEN と一致させる合言葉
 
 var NOTIFY_METHOD = "telegram";        // "telegram" / "pushover" / "ntfy" / "email" のいずれか
 
@@ -103,16 +103,28 @@ function checkReminders() {
   }
 }
 
+// セル値（Dateオブジェクト / "2026-07-24" / "Thu Jul 24 2026 ..." のいずれでも）を yyyy-MM-dd に正規化
+function normDate(d, tz) {
+  if (d instanceof Date) return Utilities.formatDate(d, tz, "yyyy-MM-dd");
+  var s = String(d).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);   // 既に "2026-07-24..." 形式
+  var parsed = new Date(s);                                       // "Thu Jul 24 2026 ..." 等を解釈
+  if (!isNaN(parsed.getTime())) return Utilities.formatDate(parsed, tz, "yyyy-MM-dd");
+  return s;
+}
+
 // 指定日のイベント種別を { committed:true, phoneOut:true, ... } の形で返す
 function getDayEvents(dateStr) {
-  var sheet = getSheet();
+  SpreadsheetApp.flush();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ssTZ = ss.getSpreadsheetTimeZone();
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) return {};
   var values = sheet.getDataRange().getValues();
   var out = {};
   for (var i = 1; i < values.length; i++) {
-    var d = values[i][0];
-    var ds = (d instanceof Date) ? Utilities.formatDate(d, TZ, "yyyy-MM-dd") : String(d);
-    if (ds === dateStr) {
-      out[values[i][1]] = true;   // 列B（event名）をキーにする
+    if (normDate(values[i][0], ssTZ) === dateStr) {
+      out[String(values[i][1]).trim()] = true;
     }
   }
   return out;
@@ -167,4 +179,30 @@ function testNotify() {
 // 督促ロジックのテスト（今この瞬間の時間帯で督促が出るかを確認）
 function testCheckReminders() {
   checkReminders();
+}
+
+// 診断用（実行後「実行ログ」タブで結果を確認）
+function debugEvents() {
+  var now = new Date();
+  var today = Utilities.formatDate(now, TZ, "yyyy-MM-dd");
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ssTZ = ss.getSpreadsheetTimeZone();
+  Logger.log("Script TZ: " + TZ);
+  Logger.log("Spreadsheet TZ: " + ssTZ);
+  Logger.log("Today (JST): " + today);
+
+  SpreadsheetApp.flush();
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  var values = sheet.getDataRange().getValues();
+  Logger.log("Total rows: " + values.length);
+
+  var start = Math.max(1, values.length - 5);
+  for (var i = start; i < values.length; i++) {
+    var d = values[i][0];
+    Logger.log("Row " + (i + 1) + ": norm=[" + normDate(d, ssTZ) + "] raw=[" + String(d) + "] event=[" + values[i][1] + "]");
+  }
+
+  var rec = getDayEvents(today);
+  Logger.log("getDayEvents result: " + JSON.stringify(rec));
+  Logger.log("committed=" + !!rec.committed + " restDay=" + !!rec.restDay + " phoneOut=" + !!rec.phoneOut);
 }
