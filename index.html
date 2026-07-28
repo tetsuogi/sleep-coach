@@ -18,7 +18,7 @@
       20%, 60% { transform: translateX(-8px); }
       40%, 80% { transform: translateX(8px); }
     }
-    textarea:focus { outline: none; border-color: #dc2626 !important; }
+    textarea:focus, input:focus { outline: none; border-color: #dc2626 !important; }
   </style>
 </head>
 <body>
@@ -44,7 +44,7 @@ var GAS_TOKEN = "usaji-3355102";    // GAS側と一致させる合言葉
    ============================================================ */
 var FACTS = [
   {
-    category: "脳の破壊", icon: "🧠",
+    category: "脳の破壊", icon: "🧠", slot: "evening",
     title: "あなたの脳は今夜も壊れる",
     body: "慢性的な睡眠不足は、覚醒と認知を司る青斑核のニューロンを最大25%死滅させる。この損傷は不可逆的で、週末の寝溜めでは回復しない。",
     source: "Penn Medicine / Journal of Neuroscience, 2013",
@@ -52,7 +52,7 @@ var FACTS = [
     quiz: { q: "慢性的な睡眠不足で死滅する脳の神経細胞は最大何%？", choices: ["5%", "25%", "50%"], answer: "25%" }
   },
   {
-    category: "ホルモン崩壊", icon: "⚡",
+    category: "ホルモン崩壊", icon: "⚡", slot: "evening",
     title: "テストステロンが15年分老化する",
     body: "たった1週間の睡眠制限（5時間/晩）で、健康な男性のテストステロンが10〜15%低下。これは10〜15年分の加齢に相当する。筋力、意欲、性機能、体脂肪すべてに影響する。",
     source: "JAMA, 2011 / シカゴ大学",
@@ -60,7 +60,7 @@ var FACTS = [
     quiz: { q: "1週間の5時間睡眠でテストステロンは何年分老化する？", choices: ["1〜2年分", "5年分", "10〜15年分"], answer: "10〜15年分" }
   },
   {
-    category: "心臓への攻撃", icon: "❤️‍🩹",
+    category: "心臓への攻撃", icon: "❤️‍🩹", slot: "evening",
     title: "死亡率が1.7倍になる",
     body: "6時間以下の睡眠の男性は、7-8時間寝ている男性に比べて全死因死亡率が1.7倍。冠動脈疾患リスクは48%上昇、脳卒中リスクは15%上昇する。",
     source: "メタ分析 / 約47.5万人対象",
@@ -68,7 +68,7 @@ var FACTS = [
     quiz: { q: "6時間以下の睡眠だと全死因死亡率は何倍になる？", choices: ["1.1倍", "1.7倍", "3倍"], answer: "1.7倍" }
   },
   {
-    category: "代謝の破綻", icon: "🩸",
+    category: "代謝の破綻", icon: "🩸", slot: "evening",
     title: "糖尿病リスクが30%上昇する",
     body: "6時間未満の睡眠は2型糖尿病リスクを約30%増加させる。インスリン感受性が低下し、食欲ホルモンが乱れる。断食の効果が夜更かしで帳消しになっている。",
     source: "前向き研究メタ分析 / 44.7万人",
@@ -76,7 +76,7 @@ var FACTS = [
     quiz: { q: "6時間未満の睡眠で2型糖尿病リスクは何%上がる？", choices: ["+5%", "+30%", "+100%"], answer: "+30%" }
   },
   {
-    category: "認知の劣化", icon: "📉",
+    category: "認知の劣化", icon: "📉", slot: "evening",
     title: "自分の劣化に気づけなくなる",
     body: "睡眠不足が続くと主観的な眠気は頭打ちになるが、客観的な認知テストのスコアは直線的に低下し続ける。「慣れた」と感じるのは脳が自己評価能力を失った証拠。",
     source: "Frontiers in Neuroscience, 2025",
@@ -84,7 +84,7 @@ var FACTS = [
     quiz: { q: "睡眠不足に「慣れた」と感じるのはなぜ？", choices: ["本当に適応したから", "脳が自己評価能力を失ったから", "気のせい"], answer: "脳が自己評価能力を失ったから" }
   },
   {
-    category: "免疫の崩壊", icon: "🛡️",
+    category: "免疫の崩壊", icon: "🛡️", slot: "evening",
     title: "風邪をひきやすくなり、がんへの監視も弱まる",
     body: "6時間未満の睡眠で感染症リスクが有意に上昇。NK細胞の活性低下により、がん細胞への免疫監視も弱体化する。ワクチンの効果も低下する。",
     source: "Sleep, 2015 / 164人対象",
@@ -92,7 +92,7 @@ var FACTS = [
     quiz: { q: "免疫が崩壊しはじめる睡眠時間の閾値は？", choices: ["8時間未満", "7時間未満", "6時間未満"], answer: "6時間未満" }
   },
   {
-    category: "認知症への道", icon: "🌑",
+    category: "認知症への道", icon: "🌑", slot: "evening",
     title: "低テストステロン×睡眠不足＝認知症リスク急増",
     body: "テストステロン低下と睡眠不足が組み合わさると、認知機能障害のリスクが相乗的に跳ね上がる。メンデルランダム化により因果関係が支持されている。",
     source: "Psychiatry Research, 2025",
@@ -100,7 +100,7 @@ var FACTS = [
     quiz: { q: "低テストステロンと睡眠不足が重なるとリスクはどうなる？", choices: ["変わらない", "単純に足し算", "相乗的に急増する"], answer: "相乗的に急増する" }
   },
   {
-    category: "睡眠の不規則性", icon: "🎲",
+    category: "睡眠の不規則性", icon: "🎲", slot: "both",
     title: "「時間」より「規則性」が死を分ける",
     body: "就寝・起床時刻がバラバラな人は、睡眠時間が足りていても全死因死亡リスクが上昇。睡眠の規則性は睡眠時間よりも強力な死亡予測因子だと判明した。毎日同じ時刻に寝ることが最重要。",
     source: "Sleep, 2024 / UK Biobank 約6万人",
@@ -108,7 +108,7 @@ var FACTS = [
     quiz: { q: "死亡リスクの予測因子として、より強力なのは？", choices: ["睡眠の規則性", "睡眠の合計時間", "寝る部屋の広さ"], answer: "睡眠の規則性" }
   },
   {
-    category: "感情の暴走", icon: "🌋",
+    category: "感情の暴走", icon: "🌋", slot: "evening",
     title: "扁桃体が60%過剰反応する",
     body: "一晩の睡眠不足で、恐怖や怒りを司る扁桃体の反応が約60%増幅。理性を司る前頭前野との接続が断たれ、感情のブレーキが効かなくなる。些細なことでイライラするのは意志の弱さではなく脳の故障。",
     source: "Current Biology, 2007 / UC Berkeley",
@@ -116,7 +116,7 @@ var FACTS = [
     quiz: { q: "一晩の睡眠不足で扁桃体（感情の中枢）の反応は？", choices: ["約60%過剰になる", "変わらない", "逆に鈍くなる"], answer: "約60%過剰になる" }
   },
   {
-    category: "酩酊状態", icon: "🍺",
+    category: "酩酊状態", icon: "🍺", slot: "evening",
     title: "気づかぬうちに酔っぱらっている",
     body: "6時間睡眠を2週間続けると、48時間ぶっ通しで徹夜したのと同等まで認知機能が低下する。恐ろしいのは、本人は「大丈夫」と感じていること。飲酒運転と同じ状態で毎日を過ごしている。",
     source: "Sleep, 2003 / Van Dongen et al.",
@@ -124,7 +124,7 @@ var FACTS = [
     quiz: { q: "6時間睡眠を2週間続けると認知機能はどうなる？", choices: ["問題なし", "48時間徹夜と同等に低下", "少し眠いだけ"], answer: "48時間徹夜と同等に低下" }
   },
   {
-    category: "血圧の上昇", icon: "🩺",
+    category: "血圧の上昇", icon: "🩺", slot: "evening",
     title: "静かに血管を締め上げる",
     body: "睡眠不足は交感神経を過剰に働かせ、高血圧リスクを約20%上昇させる。夜間に下がるべき血圧が下がらず、血管と心臓に24時間負荷がかかり続ける。自覚症状のないまま進行する。",
     source: "高血圧に関する前向き研究メタ分析",
@@ -132,7 +132,7 @@ var FACTS = [
     quiz: { q: "睡眠不足で高血圧リスクは約何%上がる？", choices: ["+2%", "+20%", "変化なし"], answer: "+20%" }
   },
   {
-    category: "脳のゴミ蓄積", icon: "🗑️",
+    category: "脳のゴミ蓄積", icon: "🗑️", slot: "both",
     title: "脳のゴミが排出されず溜まっていく",
     body: "深い睡眠中、脳は老廃物アミロイドβ（アルツハイマー病の原因物質）を洗い流す。たった一晩の徹夜でも脳内に約5%蓄積する。夜更かしは、認知症の種を毎晩まいているのと同じ。",
     source: "Science, 2013 / PNAS, 2018",
@@ -140,7 +140,7 @@ var FACTS = [
     quiz: { q: "脳の老廃物アミロイドβはいつ排出される？", choices: ["起きて活動中", "深い睡眠中", "食事中"], answer: "深い睡眠中" }
   },
   {
-    category: "食欲の暴走", icon: "🍔",
+    category: "食欲の暴走", icon: "🍔", slot: "evening",
     title: "食欲ホルモンが暴走し、太る体になる",
     body: "たった一晩の睡眠不足で、食欲を増やすホルモン「グレリン」が約28%増加し、満腹を知らせる「レプチン」が低下する。翌日は甘いものと高カロリー食が欲しくてたまらなくなる。夜更かしは断食の努力を食欲で帳消しにする。",
     source: "単夜断眠研究 / PLOS Medicine ほか",
@@ -148,7 +148,7 @@ var FACTS = [
     quiz: { q: "一晩の睡眠不足で食欲ホルモン「グレリン」は約何%増える？", choices: ["変わらない", "+28%", "−10%"], answer: "+28%" }
   },
   {
-    category: "記憶の遮断", icon: "🧷",
+    category: "記憶の遮断", icon: "🧷", slot: "evening",
     title: "徹夜は記憶の入口を閉ざす",
     body: "一晩徹夜するだけで、新しい記憶を作る能力が40%低下する。記憶の入口である海馬が機能不全に陥り、まるで一時的に脳に傷がついたような状態になる。徹夜の一夜漬けは、努力を無駄にする最悪の戦略。",
     source: "Matthew Walker / UC Berkeley",
@@ -156,7 +156,7 @@ var FACTS = [
     quiz: { q: "一晩の徹夜で「新しい記憶を作る能力」はどれだけ低下する？", choices: ["影響なし", "−40%", "−5%"], answer: "−40%" }
   },
   {
-    category: "見た目の劣化", icon: "🪞",
+    category: "見た目の劣化", icon: "🪞", slot: "evening",
     title: "寝不足の顔は、他人に見抜かれている",
     body: "睡眠不足の人の顔写真は、他人から「不健康」「疲れている」「魅力が低い」と有意に低く評価される。「美容睡眠」は迷信ではなく実験で証明された事実。寝不足は、自分では気づかないうちに印象を確実に下げている。",
     source: "Axelsson et al. / BMJ, 2010 / カロリンスカ研究所",
@@ -164,7 +164,7 @@ var FACTS = [
     quiz: { q: "睡眠不足の顔を他人が見ると、どう評価される？", choices: ["若く見える", "不健康・疲れ・低魅力と見抜かれる", "気づかれない"], answer: "不健康・疲れ・低魅力と見抜かれる" }
   },
   {
-    category: "寝酒の罠", icon: "🍶",
+    category: "寝酒の罠", icon: "🍶", slot: "night",
     title: "寝酒は眠りを浅くし、夜中に叩き起こす",
     body: "アルコールは寝つきを良くするように感じるが、実際にはREM睡眠を抑制し、後半の眠りを細切れにする。アルコールが分解されるにつれ脳が覚醒し、夜中に何度も目が覚める。「よく眠るための一杯」は、睡眠の質を確実に下げている。",
     source: "アルコールと睡眠のメタ分析 / Sleep Foundation",
@@ -172,18 +172,67 @@ var FACTS = [
     quiz: { q: "寝酒（就寝前の飲酒）は睡眠にどう作用する？", choices: ["深く眠れる", "REMを抑制し後半を細切れにする", "影響しない"], answer: "REMを抑制し後半を細切れにする" }
   },
   {
-    category: "居眠り運転", icon: "🚗",
+    category: "居眠り運転", icon: "🚗", slot: "evening",
     title: "寝不足の運転は、飲酒運転と同じ",
     body: "20時間起きたまま運転すると、その能力は血中アルコール濃度0.08%——飲酒運転の法定基準値——と同等まで落ちる。反応時間は約50%低下する。自分では「大丈夫」と思っていても、法律上は酔って運転しているのと変わらない。",
     source: "各種研究 / 米国国家睡眠財団・ハーバード睡眠医学",
     metric: "0.08%", metricLabel: "覚醒20時間＝飲酒運転相当",
     quiz: { q: "20時間起きて運転すると、能力は血中アルコール濃度いくつと同等？", choices: ["0.00%", "0.08%（飲酒運転の基準値）", "0.5%"], answer: "0.08%（飲酒運転の基準値）" }
+  },
+  {
+    category: "ベッドの中の画面", icon: "📱", slot: "night",
+    title: "ベッドで画面を見た1時間が、不眠を59%引き寄せる",
+    body: "布団に入ってからのスクリーン使用は、1時間ごとに不眠症リスクを59%上昇させ、睡眠時間を24分削る。SNSでも動画でもゲームでも結果は変わらない。問題は「何を見るか」ではなく「ベッドで画面を見ること」そのものだ。",
+    source: "Frontiers in Psychiatry, 2025 / ノルウェー学生 45,000人",
+    metric: "+59%", metricLabel: "ベッド内スクリーン1時間あたりの不眠リスク",
+    quiz: { q: "ベッドの中でスクリーンを1時間使うと不眠リスクは？", choices: ["変わらない", "59%上昇する", "SNSのときだけ上がる"], answer: "59%上昇する" }
+  },
+  {
+    category: "抜け道の罠", icon: "🕳️",  slot: "night",
+    title: "スマホを追放しても、別の画面が席を引き継ぐ",
+    body: "就寝先延ばしの正体はデバイスではなく「眠るより刺激を選ぶ」という行動そのもの。スマホだけを遠ざけても、タブレット・PC・テレビが同じ役割を即座に引き継ぐ。寝室から画面を1台残らず出して、初めて効果が出る。",
+    source: "就寝先延ばし研究 / Journal of Clinical Sleep Medicine, 2024",
+    metric: "1台でも残せば無効", metricLabel: "デバイスは入れ替わるだけ",
+    quiz: { q: "スマホだけを寝室から出すとどうなる？", choices: ["それで十分", "タブレット等が役割を引き継ぐ", "睡眠時間が倍になる"], answer: "タブレット等が役割を引き継ぐ" }
+  },
+  {
+    category: "ベッドの条件づけ", icon: "🛏️", slot: "night",
+    title: "ベッドで起きているほど、眠れない体質が育つ",
+    body: "不眠治療（CBT-I）の中核である「刺激制御」。ベッドで睡眠以外のことをするたび、脳は「ベッド＝起きている場所」と学習していく。逆にベッドを眠るためだけに使い続ければ、横になった瞬間に眠くなる体に作り替えられる。",
+    source: "CBT-I 刺激制御療法 / Bootzin",
+    metric: "ベッド＝睡眠", metricLabel: "脳に刻むべき唯一の条件づけ",
+    quiz: { q: "ベッドで動画を見続けると、脳は何を学習する？", choices: ["ベッド＝眠る場所", "ベッド＝起きている場所", "特に何も学習しない"], answer: "ベッド＝起きている場所" }
+  },
+  {
+    category: "眠れない夜", icon: "⏱️", slot: "night",
+    title: "眠れないままベッドに居座るのが、一番まずい",
+    body: "20分たっても眠れなければ、一度ベッドを出て暗い場所で退屈なことをし、眠気が来てから戻る。「眠らなければ」と焦るほど覚醒度が上がり、ベッドと不安が結びついていく。時計を何度も確認するのも、同じ理由で逆効果だ。",
+    source: "CBT-I 刺激制御療法",
+    metric: "20分", metricLabel: "ベッドを出るべき境界線",
+    quiz: { q: "20分たっても眠れないとき、正しい行動は？", choices: ["眠るまでベッドで粘る", "一度ベッドを出て眠気を待つ", "スマホを見て気を紛らわす"], answer: "一度ベッドを出て眠気を待つ" }
+  },
+  {
+    category: "夜の光", icon: "💡", slot: "night",
+    title: "夜の光が、眠りのホルモンを止めている",
+    body: "夜に強い光を浴びるとメラトニンの分泌が抑制され、体内時計が後ろへずれる。しかも顔から数十cmの距離で見る画面は、天井の照明より目に届く光が強い。就寝1〜2時間前から照明を落とし、画面を目から遠ざける。",
+    source: "光とメラトニン抑制に関する研究",
+    metric: "メラトニン抑制", metricLabel: "夜に強い光を浴びる代償",
+    quiz: { q: "夜に強い光を浴びると体内時計はどうなる？", choices: ["後ろにずれて眠くなくなる", "前倒しになって早く眠くなる", "影響しない"], answer: "後ろにずれて眠くなくなる" }
+  },
+  {
+    category: "起床時刻の固定", icon: "⏰", slot: "night",
+    title: "体内時計を決めるのは、寝た時刻ではなく起きた時刻",
+    body: "睡眠の規則性が高い人は、全死因死亡リスクが20〜48%低い。そして体内時計のアンカーになるのは就寝時刻ではなく起床時刻だ。夜更かししてしまった翌朝も同じ時刻に起きること——それが翌晩を立て直す唯一の方法。",
+    source: "Sleep, 2024 / UK Biobank 約6万人（Windred et al.）",
+    metric: "−20〜48%", metricLabel: "規則的な睡眠での死亡リスク低下",
+    quiz: { q: "夜更かしした翌朝、体内時計を守るには？", choices: ["いつもより長く寝て補う", "いつもと同じ時刻に起きる", "昼まで寝て休む"], answer: "いつもと同じ時刻に起きる" }
   }
 ];
 
 var RULES = [
-  { icon: "📵", text: "20:00アラームでYouTubeを閉じる" },
-  { icon: "🚪", text: "23:00にスマホをリビングに置く" },
+  { icon: "📵", text: "20:00アラームでYouTubeを閉じる（タブレットも同じ）" },
+  { icon: "🚪", text: "23:00にスマホとタブレットをリビングに置く" },
+  { icon: "🛏️", text: "ベッドは眠るためだけの場所。画面を持ち込まない。" },
   { icon: "🔒", text: "おやすみモードでYouTube・X・Amazon・メルカリを遮断" },
   { icon: "🍳", text: "食事は時短に徹する。凝らない。" }
 ];
@@ -203,6 +252,14 @@ var LIGHTS_OPTIONS = [
   { key: "before2330", label: "〜23:30", color: "#84cc16" },
   { key: "before24", label: "〜24:00", color: "#f59e0b" },
   { key: "after24", label: "24:00以降", color: "#ef4444" }
+];
+
+// 起床時刻（規則性の可視化用）。平日の目標起床は 6:45
+var WAKE_OPTIONS = [
+  { key: "before645", label: "〜6:45", color: "#22c55e" },
+  { key: "before715", label: "〜7:15", color: "#84cc16" },
+  { key: "before800", label: "〜8:00", color: "#f59e0b" },
+  { key: "after800", label: "8:00以降", color: "#ef4444" }
 ];
 
 var STORAGE_KEY = "sleep-coach-data";
@@ -253,7 +310,9 @@ function hashStr(str) {
   for (var i = 0; i < str.length; i++) {
     h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
   }
-  return h;
+  // djb2 単体は下位ビットの混ざりが弱く、1日違いの日付など「末尾以外がわずかに違う文字列」が
+  // 近い値に固まる。乗算ハッシュで撹拌してから上位ビットを返す
+  return (Math.imul(h, 2654435761) >>> 0) >>> 8;
 }
 
 function assign() {
@@ -265,19 +324,23 @@ function assign() {
   return result;
 }
 
-function shuffleFacts(today) {
-  return FACTS.slice().sort(function(a, b) {
-    var ha = hashStr(today + "-" + FACTS.indexOf(a)) % 9973;
-    var hb = hashStr(today + "-" + FACTS.indexOf(b)) % 9973;
+// slot（"evening" = 18:30のチェックイン / "night" = 23:00の最終確認）に合う
+// ファクトだけを母集団にして、日替わりハッシュ順で n 件選ぶ。slot:"both" は両方に入る
+function pickFacts(today, slot, n) {
+  return FACTS.filter(function(f) {
+    return f.slot === slot || f.slot === "both";
+  }).sort(function(a, b) {
+    var ha = hashStr(today + "-" + slot + "-" + FACTS.indexOf(a));
+    var hb = hashStr(today + "-" + slot + "-" + FACTS.indexOf(b));
     return ha - hb;
-  }).slice(0, 4);
+  }).slice(0, n);
 }
 
 // クイズ選択肢を日替わりでシャッフル
 function shuffleChoices(choices, today, salt) {
   return choices.slice().sort(function(a, b) {
-    var ha = hashStr(today + salt + a) % 9973;
-    var hb = hashStr(today + salt + b) % 9973;
+    var ha = hashStr(today + salt + a);
+    var hb = hashStr(today + salt + b);
     return ha - hb;
   });
 }
@@ -395,10 +458,10 @@ var S = {
   morningButtons: { display: "flex", gap: 12, marginBottom: 8 },
   successBtn: { flex: 1, padding: "14px 0", backgroundColor: "#14532d", color: "#22c55e", border: "1px solid #166534", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer" },
   failBtn: { flex: 1, padding: "14px 0", backgroundColor: "#450a0a", color: "#ef4444", border: "1px solid #7f1d1d", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer" },
-  morningResult: { padding: "12px 0" },
   lightsQuestion: { fontSize: 15, fontWeight: 700, color: "#f5f5f5", marginBottom: 14, marginTop: 8 },
   lightsChoiceRow: { display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" },
   lightsChoiceBtn: { flex: "1 1 45%", padding: "14px 0", backgroundColor: "#161616", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer" },
+  wakeNote: { fontSize: 12, color: "#666", lineHeight: 1.6, marginTop: 14, textAlign: "left" },
   // done
   doneCard: { maxWidth: 400, width: "100%", textAlign: "center", marginTop: 40 },
   doneTitle: { fontSize: 22, fontWeight: 700, color: "#f5f5f5", margin: "0 0 10px 0" },
@@ -420,6 +483,9 @@ var S = {
   actionChecklist: { textAlign: "left", marginBottom: 24, padding: "16px 20px", backgroundColor: "#0a0a0a", borderRadius: 10 },
   actionCheckItem: { display: "flex", alignItems: "center", gap: 10, padding: "8px 0", fontSize: 14, color: "#b0b0b0" },
   actionCheckDone: { color: "#22c55e", textDecoration: "line-through" },
+  placeBlock: { textAlign: "left", marginBottom: 16 },
+  placeLabel: { fontSize: 14, fontWeight: 700, color: "#f5f5f5", marginBottom: 8 },
+  placeInput: { width: "100%", padding: "13px 14px", backgroundColor: "#0a0a0a", color: "#f5f5f5", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 15, fontFamily: "inherit" },
   intentionRecall: { backgroundColor: "#0a0a0a", border: "1px dashed #333", borderRadius: 10, padding: "14px 16px", marginBottom: 20, textAlign: "left" },
   intentionRecallLabel: { fontSize: 11, color: "#666", marginBottom: 6 },
   intentionRecallText: { fontSize: 15, color: "#f59e0b", fontWeight: 600, lineHeight: 1.5, fontStyle: "italic" },
@@ -465,11 +531,25 @@ function SleepCoach() {
   var intentionState = useState("");
   var intention = intentionState[0], setIntention = intentionState[1];
 
+  // 23:00 画面の進行: "quiz"（出題）→ "fact"（正解して本文を読む）→ "place"（置き場を書く）
+  var nightStepState = useState("quiz");
+  var nightStep = nightStepState[0], setNightStep = nightStepState[1];
+
+  var phonePlaceState = useState("");
+  var phonePlace = phonePlaceState[0], setPhonePlace = phonePlaceState[1];
+
+  var tabletPlaceState = useState("");
+  var tabletPlace = tabletPlaceState[0], setTabletPlace = tabletPlaceState[1];
+
   var dataState = useState({ streak: 0, history: {}, lastCheckIn: null });
   var data = dataState[0], setData = dataState[1];
 
   var morningResultState = useState(null);
   var morningResult = morningResultState[0], setMorningResult = morningResultState[1];
+
+  // 朝の報告の進行: null（できた/できなかった）→ "lights"（消灯時刻）→ "wake"（起床時刻）
+  var morningStepState = useState(null);
+  var morningStep = morningStepState[0], setMorningStep = morningStepState[1];
 
   var todayFactsState = useState([]);
   var todayFacts = todayFactsState[0], setTodayFacts = todayFactsState[1];
@@ -486,7 +566,7 @@ function SleepCoach() {
     flushQueue(); // 溜まった未送信イベントを再送
 
     var today = getToday();
-    setTodayFacts(shuffleFacts(today));
+    setTodayFacts(pickFacts(today, "evening", 4));
     setPhase(decidePhase(loadedData));
   }, []);
 
@@ -529,9 +609,9 @@ function SleepCoach() {
   }
 
   // --- クイズ回答 ---
-  function handleAnswer(choice, correct) {
+  function handleAnswer(choice, correct, onCorrect) {
     if (choice === correct) {
-      setFactRevealed(true);
+      onCorrect();
     } else {
       var w = assign({}, wrong); w[choice] = true; setWrong(w);
       setShake(true);
@@ -573,6 +653,7 @@ function SleepCoach() {
     saveData(assign({}, data, { history: newHistory, lastCheckIn: today }));
     sendEvent("committed", intention.trim());
     var hour = getHour();
+    setWrong({});   // 夜のクイズに不正解マークを持ち越さない
     if (hour >= 23) { setPhase("phone"); }
     else if (hour >= 20) { setPhase("youtube"); }
     else { setPhase("done"); }
@@ -585,8 +666,13 @@ function SleepCoach() {
   }
 
   function handlePhoneOut() {
-    updateTodayRecord({ phoneOut: true, phoneOutTime: new Date().toISOString() });
-    sendEvent("phoneOut");
+    var p = phonePlace.trim(), t = tabletPlace.trim();
+    if (p.length < 2 || t.length < 2) return;
+    updateTodayRecord({
+      phoneOut: true, phoneOutTime: new Date().toISOString(),
+      phonePlace: p, tabletPlace: t
+    });
+    sendEvent("phoneOut", "スマホ:" + p + " / タブレット:" + t);
     setPhase("goodnight");
   }
 
@@ -600,10 +686,9 @@ function SleepCoach() {
     var newStreak = success ? data.streak + 1 : 0;
     saveData(assign({}, data, { history: newHistory, streak: newStreak }));
     sendEvent("morning", success ? "success" : "fail");
-    // 消灯時刻の質問へ（successの時のみ）。failなら次へ
-    if (!success) {
-      setTimeout(function() { advanceAfterMorning(); }, 1800);
-    }
+    // 成功なら消灯時刻から、失敗なら消灯時刻を飛ばして起床時刻を聞く
+    // （守れなかった夜こそ起床時刻を固定することが翌晩の立て直しになるため）
+    setMorningStep(success ? "lights" : "wake");
   }
 
   function handleLightsReport(optKey) {
@@ -614,11 +699,23 @@ function SleepCoach() {
       saveData(assign({}, data, { history: newHistory }));
       sendEvent("lightsOut", optKey);
     }
+    setMorningStep("wake");
+  }
+
+  function handleWakeReport(optKey) {
+    var yesterday = data.lastCheckIn;
+    if (yesterday) {
+      var newHistory = assign({}, data.history);
+      newHistory[yesterday] = assign({}, newHistory[yesterday], { wakeUp: optKey });
+      saveData(assign({}, data, { history: newHistory }));
+      sendEvent("wakeUp", optKey);
+    }
     advanceAfterMorning();
   }
 
   function advanceAfterMorning() {
     setMorningResult(null);
+    setMorningStep(null);
     // 報告後、今日のフェーズを再決定（データは最新のstateを使うためsetTimeoutで）
     var today = getToday();
     var rec = data.history[today] || {};
@@ -635,6 +732,9 @@ function SleepCoach() {
     setWrong({});
     setRulesAcked(false);
     setIntention("");
+    setNightStep("quiz");
+    setPhonePlace("");
+    setTabletPlace("");
     setPhase(isWeekendChoice() ? "choice" : "facts");
   }
 
@@ -649,6 +749,38 @@ function SleepCoach() {
 
   var rec = todayRecord(data);
   var today = getToday();
+
+  // クイズカード（18:30のファクト画面と23:00の最終確認で共用）
+  // revealed が false なら3択クイズ、true なら正解後のファクト本文を描画する
+  function quizCard(fact, salt, revealed, onCorrect) {
+    if (revealed) {
+      return e("div", { style: S.factCard },
+        e("div", { style: S.categoryBadge }, "✓ 正解 — " + fact.category),
+        e("div", { style: S.metricBlock },
+          e("div", { style: S.metricValue }, fact.metric),
+          e("div", { style: S.metricLabel }, fact.metricLabel)
+        ),
+        e("h2", { style: S.factTitle }, fact.title),
+        e("p", { style: S.factBody }, fact.body),
+        e("p", { style: S.factSource }, fact.source)
+      );
+    }
+    return e("div", { style: assign({}, S.factCard, shake ? { animation: "shake 0.4s" } : {}) },
+      e("div", { style: S.categoryBadge }, fact.icon + " " + fact.category),
+      e("div", { style: S.quizPrompt }, "問題"),
+      e("div", { style: S.quizQuestion }, fact.quiz.q),
+      shuffleChoices(fact.quiz.choices, today, salt).map(function(c) {
+        var isWrong = wrong[c];
+        return e("button", {
+          key: c,
+          disabled: isWrong,
+          style: assign({}, S.quizChoice, isWrong ? S.quizChoiceWrong : {}),
+          onClick: function() { handleAnswer(c, fact.quiz.answer, onCorrect); }
+        }, (isWrong ? "✗ " : "") + c);
+      }),
+      e("div", { style: S.quizHint }, Object.keys(wrong).length > 0 ? "不正解。正しい答えを選べ。" : "")
+    );
+  }
 
   // ============ 画面 ============
 
@@ -685,15 +817,15 @@ function SleepCoach() {
   // --- 朝の報告 ---
   if (phase === "morning") {
     var morningContent;
-    if (morningResult === null) {
+    if (morningStep === null) {
       morningContent = e("div", null,
-        e("p", { style: S.morningBody }, "23:00までにスマホを手放して消灯できましたか？"),
+        e("p", { style: S.morningBody }, "23:00までにスマホとタブレットを手放して消灯できましたか？"),
         e("div", { style: S.morningButtons },
           e("button", { style: S.successBtn, onClick: function() { handleMorningReport(true); } }, "✓ できた"),
           e("button", { style: S.failBtn, onClick: function() { handleMorningReport(false); } }, "✗ できなかった")
         )
       );
-    } else if (morningResult === true) {
+    } else if (morningStep === "lights") {
       // 消灯時刻を質問
       morningContent = e("div", null,
         e("p", { style: { color: "#22c55e", fontSize: 16, fontWeight: 700, marginBottom: 4 } }, "素晴らしい。"),
@@ -709,8 +841,22 @@ function SleepCoach() {
         )
       );
     } else {
-      morningContent = e("div", { style: S.morningResult },
-        e("p", { style: { color: "#f59e0b", fontSize: 18, fontWeight: 700 } }, "正直に報告できたことが大事です。今夜こそ。")
+      // 起床時刻を質問（成功・失敗どちらの経路でも聞く）
+      morningContent = e("div", null,
+        morningResult === false
+          ? e("p", { style: { color: "#f59e0b", fontSize: 16, fontWeight: 700, marginBottom: 4 } }, "正直に報告できたことが大事です。今夜こそ。")
+          : null,
+        e("div", { style: S.lightsQuestion }, "今朝は何時に起きた？"),
+        e("div", { style: S.lightsChoiceRow },
+          WAKE_OPTIONS.map(function(opt) {
+            return e("button", {
+              key: opt.key,
+              style: assign({}, S.lightsChoiceBtn, { color: opt.color, borderColor: opt.color + "55" }),
+              onClick: function() { handleWakeReport(opt.key); }
+            }, opt.label);
+          })
+        ),
+        e("div", { style: S.wakeNote }, "体内時計を決めるのは寝た時刻ではなく起きた時刻。夜更かしした翌朝ほど、いつもの時刻に起きる。")
       );
     }
     return e("div", { style: S.container },
@@ -728,39 +874,8 @@ function SleepCoach() {
     if (!fact) return null;
     var progress = factIndex + 1;
     var total = todayFacts.length;
-    var choices = shuffleChoices(fact.quiz.choices, today, "-q" + factIndex);
 
-    var cardInner;
-    if (!factRevealed) {
-      // クイズ出題
-      cardInner = e("div", { style: assign({}, S.factCard, shake ? { animation: "shake 0.4s" } : {}) },
-        e("div", { style: S.categoryBadge }, fact.icon + " " + fact.category),
-        e("div", { style: S.quizPrompt }, "問題"),
-        e("div", { style: S.quizQuestion }, fact.quiz.q),
-        choices.map(function(c) {
-          var isWrong = wrong[c];
-          return e("button", {
-            key: c,
-            disabled: isWrong,
-            style: assign({}, S.quizChoice, isWrong ? S.quizChoiceWrong : {}),
-            onClick: function() { handleAnswer(c, fact.quiz.answer); }
-          }, (isWrong ? "✗ " : "") + c);
-        }),
-        e("div", { style: S.quizHint }, Object.keys(wrong).length > 0 ? "不正解。正しい答えを選べ。" : "")
-      );
-    } else {
-      // 正解 → ファクト本文
-      cardInner = e("div", { style: S.factCard },
-        e("div", { style: S.categoryBadge }, "✓ 正解 — " + fact.category),
-        e("div", { style: S.metricBlock },
-          e("div", { style: S.metricValue }, fact.metric),
-          e("div", { style: S.metricLabel }, fact.metricLabel)
-        ),
-        e("h2", { style: S.factTitle }, fact.title),
-        e("p", { style: S.factBody }, fact.body),
-        e("p", { style: S.factSource }, fact.source)
-      );
-    }
+    var cardInner = quizCard(fact, "-q" + factIndex, factRevealed, function() { setFactRevealed(true); });
 
     return e("div", { style: S.container },
       e("div", { style: S.progressBar },
@@ -797,13 +912,18 @@ function SleepCoach() {
       );
     });
 
-    var lightsBars = recentDays.map(function(dw, idx) {
-      var opt = null;
-      for (var j = 0; j < LIGHTS_OPTIONS.length; j++) { if (LIGHTS_OPTIONS[j].key === dw.lightsOut) opt = LIGHTS_OPTIONS[j]; }
-      return e("div", { key: idx, style: S.lightsCell },
-        e("div", { style: assign({}, S.lightsBar, { backgroundColor: opt ? opt.color : "#1a1a1a" }) })
-      );
-    });
+    // 消灯・起床それぞれの記録を色バーで表示（ブレ＝規則性の可視化）
+    function timeBars(options, field) {
+      return recentDays.map(function(dw, idx) {
+        var opt = null;
+        for (var j = 0; j < options.length; j++) { if (options[j].key === dw[field]) opt = options[j]; }
+        return e("div", { key: idx, style: S.lightsCell },
+          e("div", { style: assign({}, S.lightsBar, { backgroundColor: opt ? opt.color : "#1a1a1a" }) })
+        );
+      });
+    }
+    var lightsBars = timeBars(LIGHTS_OPTIONS, "lightsOut");
+    var wakeBars = timeBars(WAKE_OPTIONS, "wakeUp");
 
     var canCommit = intention.trim().length >= 5;
     var bottomBtn;
@@ -831,12 +951,14 @@ function SleepCoach() {
     }
 
     return e("div", { style: S.container },
-      e("h2", { style: S.rulesTitle }, "今夜守る4つのルール"),
+      e("h2", { style: S.rulesTitle }, "今夜守る5つのルール"),
       e("div", { style: S.rulesList }, ruleItems),
       data.streak > 0 ? e("div", { style: S.streakBanner }, "🔥 現在の連続達成: " + data.streak + "日") : null,
       e("div", { style: S.weekGrid }, weekDots),
       e("div", { style: S.sectionLabel }, "消灯時刻の記録"),
       e("div", { style: S.lightsRow }, lightsBars),
+      e("div", { style: S.sectionLabel }, "起床時刻の記録"),
+      e("div", { style: S.lightsRow }, wakeBars),
       bottomBtn
     );
   }
@@ -858,9 +980,9 @@ function SleepCoach() {
         e("div", { style: S.actionTime }, "20:00 — アクション必須"),
         e("h2", { style: S.actionTitle }, "YouTubeを今すぐ閉じろ"),
         intentionRecall(),
-        e("p", { style: S.actionBody }, "食後のダラダラ視聴が睡眠時間を奪う最大の原因。\n「あと1本」はない。今閉じなければ23:00消灯は不可能。"),
+        e("p", { style: S.actionBody }, "食後のダラダラ視聴が睡眠時間を奪う最大の原因。\n「あと1本」はない。今閉じなければ23:00消灯は不可能。\nスマホを閉じてタブレットに移るのは、閉じたことにならない。"),
         e("div", { style: S.actionChecklist },
-          e("div", { style: S.actionCheckItem }, "1. YouTubeアプリを閉じる"),
+          e("div", { style: S.actionCheckItem }, "1. YouTubeアプリを閉じる（スマホもタブレットも）"),
           e("div", { style: S.actionCheckItem }, "2. X（Twitter）も閉じる"),
           e("div", { style: S.actionCheckItem }, "3. Amazon・メルカリも閲覧しない")
         ),
@@ -869,21 +991,61 @@ function SleepCoach() {
     );
   }
 
-  // --- Phone (23:00~) ---
+  // --- Phone (23:00~) : ①夜のクイズ → ②ファクト本文 → ③置き場の記述 ---
   if (phase === "phone") {
+    var nightFact = pickFacts(today, "night", 1)[0];
+
+    // ①②: 入眠直前に効くクイズ。正解するまで最終確認に進めない
+    if (nightFact && nightStep !== "place") {
+      var revealed = nightStep === "fact";
+      return e("div", { style: S.container },
+        e("div", { style: assign({}, S.actionTime, { color: "#f59e0b", marginTop: 24 }) }, "23:00 — 最終確認"),
+        quizCard(nightFact, "-night", revealed, function() { setNightStep("fact"); }),
+        revealed
+          ? e("button", { style: S.nextBtn, onClick: function() { setNightStep("place"); } }, "最終確認へ →")
+          : null
+      );
+    }
+
+    // ③: 2台それぞれの置き場を自分の言葉で書かせる
+    var canPlace = phonePlace.trim().length >= 2 && tabletPlace.trim().length >= 2;
     return e("div", { style: S.container },
       e("div", { style: assign({}, S.actionCard, { borderColor: "#f59e0b" }) },
         e("div", { style: S.actionIcon }, "🚪"),
         e("div", { style: assign({}, S.actionTime, { color: "#f59e0b" }) }, "23:00 — 最終アクション"),
-        e("h2", { style: S.actionTitle }, "スマホをリビングに置け"),
+        e("h2", { style: S.actionTitle }, "スマホとタブレットをリビングに置け"),
         intentionRecall(),
-        e("p", { style: S.actionBody }, "寝室にスマホを持ち込んだ時点で負け。\n目覚ましはスマートウォッチで十分。今すぐ手放せ。"),
+        e("p", { style: S.actionBody }, "寝室に画面を1台でも持ち込んだ時点で負け。\nスマホだけ追放してもタブレットが残れば同じこと。\n目覚ましはスマートウォッチで十分。"),
         e("div", { style: S.actionChecklist },
           e("div", { style: S.actionCheckItem }, "1. おやすみモードをONにする"),
           e("div", { style: S.actionCheckItem }, "2. スマホをリビングの充電器に置く"),
-          e("div", { style: S.actionCheckItem }, "3. 寝室に入る → 消灯")
+          e("div", { style: S.actionCheckItem }, "3. タブレットもリビングに置く"),
+          e("div", { style: S.actionCheckItem }, "4. 寝室に入る → 消灯")
         ),
-        e("button", { style: assign({}, S.actionConfirmBtn, { backgroundColor: "#f59e0b", color: "#000" }), onClick: handlePhoneOut }, "スマホを置いた。おやすみ。")
+        e("div", { style: S.placeBlock },
+          e("div", { style: S.placeLabel }, "スマホは今どこにある？"),
+          e("input", {
+            style: S.placeInput,
+            value: phonePlace,
+            placeholder: "例）リビングの充電器の上",
+            onChange: function(ev) { setPhonePlace(ev.target.value); }
+          })
+        ),
+        e("div", { style: S.placeBlock },
+          e("div", { style: S.placeLabel }, "タブレットは今どこにある？"),
+          e("input", {
+            style: S.placeInput,
+            value: tabletPlace,
+            placeholder: "例）リビングの棚",
+            onChange: function(ev) { setTabletPlace(ev.target.value); }
+          })
+        ),
+        e("button", {
+          style: assign({}, S.actionConfirmBtn,
+            canPlace ? { backgroundColor: "#f59e0b", color: "#000" } : S.commitBtnDisabled),
+          disabled: !canPlace,
+          onClick: handlePhoneOut
+        }, canPlace ? "2台とも置いた。おやすみ。" : "2台の置き場所を書くと完了できます")
       )
     );
   }
@@ -898,7 +1060,7 @@ function SleepCoach() {
         e("div", { style: assign({}, S.actionChecklist, { marginTop: 24 }) },
           e("div", { style: assign({}, S.actionCheckItem, S.actionCheckDone) }, "✓ チェックイン完了"),
           e("div", { style: assign({}, S.actionCheckItem, S.actionCheckDone) }, "✓ YouTube・SNS終了"),
-          e("div", { style: assign({}, S.actionCheckItem, S.actionCheckDone) }, "✓ スマホをリビングに配置")
+          e("div", { style: assign({}, S.actionCheckItem, S.actionCheckDone) }, "✓ スマホ・タブレットをリビングに配置")
         ),
         data.streak > 0 ? e("div", { style: assign({}, S.streakBanner, { marginTop: 20 }) }, "🔥 連続達成: " + data.streak + "日") : null,
         e("button", { style: S.resetBtn, onClick: handleReset }, "リセット（テスト用）")
@@ -916,7 +1078,7 @@ function SleepCoach() {
       nextAction = "📵 YouTubeを閉じる";
       nextTime = new Date(); nextTime.setHours(20, 0, 0, 0);
     } else if (!rec.phoneOut) {
-      nextAction = "🚪 スマホをリビングに置く";
+      nextAction = "🚪 スマホ・タブレットをリビングに置く";
       nextTime = new Date(); nextTime.setHours(23, 0, 0, 0);
     }
 
@@ -952,7 +1114,7 @@ function SleepCoach() {
         e("div", { style: S.actionChecklist },
           e("div", { style: assign({}, S.actionCheckItem, rec.committed ? S.actionCheckDone : {}) }, (rec.committed ? "✓ " : "○ ") + "チェックイン"),
           e("div", { style: assign({}, S.actionCheckItem, rec.youtubeOff ? S.actionCheckDone : {}) }, (rec.youtubeOff ? "✓ " : "○ ") + "YouTube・SNS終了（20:00）"),
-          e("div", { style: assign({}, S.actionCheckItem, rec.phoneOut ? S.actionCheckDone : {}) }, (rec.phoneOut ? "✓ " : "○ ") + "スマホ追放（23:00）")
+          e("div", { style: assign({}, S.actionCheckItem, rec.phoneOut ? S.actionCheckDone : {}) }, (rec.phoneOut ? "✓ " : "○ ") + "スマホ・タブレット追放（23:00）")
         ),
         data.streak > 0 ? e("div", { style: assign({}, S.streakBanner, { marginTop: 20 }) }, "🔥 連続達成: " + data.streak + "日") : null,
         e("button", { style: S.resetBtn, onClick: handleReset }, "リセット（テスト用）")
