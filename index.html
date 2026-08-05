@@ -40,7 +40,8 @@ var GAS_URL = "https://script.google.com/macros/s/AKfycbyW2pnI_itkHuSoLAeEQRvv9p
 var GAS_TOKEN = "usaji-3355102";    // GAS側と一致させる合言葉
 
 /* ============================================================
-   恐怖ファクト（12件）— 各件にクイズを内蔵
+   恐怖ファクト（28件）— 各件にクイズを内蔵。slot で出題する時間帯を振り分ける
+   "evening" = 18:30のチェックインで3問 / "night" = 23:00の最終確認で1問 / "both" = 両方
    ============================================================ */
 var FACTS = [
   {
@@ -180,6 +181,46 @@ var FACTS = [
     quiz: { q: "20時間起きて運転すると、能力は血中アルコール濃度いくつと同等？", choices: ["0.00%", "0.08%（飲酒運転の基準値）", "0.5%"], answer: "0.08%（飲酒運転の基準値）" }
   },
   {
+    category: "ダイエットの帳消し", icon: "⚖️", slot: "evening",
+    title: "寝不足だと、減るのは脂肪ではなく筋肉になる",
+    body: "同じ食事制限をしても、睡眠が5.5時間の期間は8.5時間の期間に比べ、減った体重に占める脂肪が55%少なく、筋肉など除脂肪量の減少は60%多かった。空腹感も強まる。夜更かしは、あなたの食事管理の成果を筋肉の犠牲にすり替えている。",
+    source: "Nedeltcheva et al. / Annals of Internal Medicine, 2010",
+    metric: "-55%", metricLabel: "脂肪で落ちる分の減少",
+    quiz: { q: "寝不足のまま食事制限をすると、減った体重の中身はどうなる？", choices: ["脂肪が多く減る", "脂肪が減りにくく筋肉が多く減る", "変わらない"], answer: "脂肪が減りにくく筋肉が多く減る" }
+  },
+  {
+    category: "筋肉の喪失", icon: "💪", slot: "evening",
+    title: "6時間未満で、筋肉が減る病のリスクが1.7倍",
+    body: "睡眠6時間未満の人はサルコペニア（筋肉減少症）のリスクが約1.7倍。筋肉の合成は主に睡眠中の成長ホルモン分泌に依存しており、トレーニングも食事も、眠らなければ土台から崩れる。",
+    source: "メタ分析 / J Am Med Dir Assoc, 2023",
+    metric: "1.7x", metricLabel: "サルコペニアのリスク",
+    quiz: { q: "睡眠6時間未満だとサルコペニア（筋肉減少症）リスクは何倍？", choices: ["1.0倍（変わらない）", "1.7倍", "10倍"], answer: "1.7倍" }
+  },
+  {
+    category: "脳卒中", icon: "🧨", slot: "evening",
+    title: "脳卒中のリスクが29%上がる",
+    body: "睡眠5〜6時間以下の人は、脳卒中の発症リスクが約29%高い。短時間睡眠は血圧・炎症・自律神経を通じて血管を静かに削り続ける。倒れるまで自覚症状はない。",
+    source: "メタ分析 / 2025",
+    metric: "+29%", metricLabel: "脳卒中の発症リスク",
+    quiz: { q: "5〜6時間以下の睡眠で脳卒中の発症リスクは何%上がる？", choices: ["+29%", "変わらない", "+300%"], answer: "+29%" }
+  },
+  {
+    category: "仕事の事故", icon: "🏢", slot: "evening",
+    title: "職場でのミスと事故が62%増える",
+    body: "睡眠に問題を抱える人は、労働災害に遭う確率が62%高い。労災の約13%は睡眠不足に起因すると推計されている。数字を扱う仕事なら、事故の前にまず「見落とし」と「打ち間違い」として現れる。",
+    source: "CDC / 米国国家安全評議会（NSC）",
+    metric: "+62%", metricLabel: "労働災害に遭う確率",
+    quiz: { q: "睡眠に問題がある人が労働災害に遭う確率は？", choices: ["変わらない", "62%高い", "半分になる"], answer: "62%高い" }
+  },
+  {
+    category: "心の消耗", icon: "🌧️", slot: "evening",
+    title: "不安とストレス耐性が静かに削られる",
+    body: "睡眠不足は不安を高め、感情の立て直しを妨げ、ストレスやうつ症状への抵抗力を下げる。「最近やる気が出ない」「些細なことが重い」の正体は性格でも根性でもなく、削った睡眠時間であることが多い。",
+    source: "アンブレラレビュー / Am J Lifestyle Med, 2025",
+    metric: "耐性低下", metricLabel: "ストレスへの抵抗力",
+    quiz: { q: "「やる気が出ない・気分が重い」が続くとき、まず疑うべきは？", choices: ["性格や根性の問題", "削った睡眠時間", "季節のせい"], answer: "削った睡眠時間" }
+  },
+  {
     category: "ベッドの中の画面", icon: "📱", slot: "night",
     title: "ベッドで画面を見た1時間が、不眠を59%引き寄せる",
     body: "布団に入ってからのスクリーン使用は、1時間ごとに不眠症リスクを59%上昇させ、睡眠時間を24分削る。SNSでも動画でもゲームでも結果は変わらない。問題は「何を見るか」ではなく「ベッドで画面を見ること」そのものだ。",
@@ -284,14 +325,33 @@ function getHour() {
   return new Date().getHours();
 }
 
+// 「その日」の境界。0:00ではなく朝4:00で日付を切り替え、0:00〜3:59は前日の夜の続きとして扱う。
+// これがないと、23:00の確認を忘れて日付をまたいだ瞬間に翌日扱いとなり、
+// 夜のうちにスマホを置き直す導線が消えて「昨夜の結果報告」が出てしまう。
+var DAY_ROLLOVER_HOUR = 4;
+
+// 論理上の「今日」を表すDate。DEBUG.hour が指定されていればその時刻として扱う
+function logicalDate() {
+  var d = new Date();
+  if (typeof DEBUG.hour === "number" && !isNaN(DEBUG.hour)) d.setHours(DEBUG.hour);
+  if (d.getHours() < DAY_ROLLOVER_HOUR) d.setDate(d.getDate() - 1);
+  return d;
+}
+
 function getDayNum() {
   if (typeof DEBUG.day === "number" && !isNaN(DEBUG.day)) return DEBUG.day;
-  return new Date().getDay();
+  return logicalDate().getDay();
 }
 
 function getToday() {
-  var d = new Date();
+  var d = logicalDate();
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+// 23:00〜翌3:59 が「今夜」の時間帯（スマホ追放〜おやすみ）
+function isNightTime() {
+  var h = getHour();
+  return h >= 23 || h < DAY_ROLLOVER_HOUR;
 }
 
 function getDayOfWeek(dateStr) {
@@ -566,7 +626,7 @@ function SleepCoach() {
     flushQueue(); // 溜まった未送信イベントを再送
 
     var today = getToday();
-    setTodayFacts(pickFacts(today, "evening", 4));
+    setTodayFacts(pickFacts(today, "evening", 3));   // 23:00にも1問出すため、チェックインは3問
     setPhase(decidePhase(loadedData));
   }, []);
 
@@ -586,9 +646,10 @@ function SleepCoach() {
 
     if (rec.restDay) return "rest";           // 今日はフリーを選択済み
     if (rec.committed) {
-      if (hour >= 23 && !rec.phoneOut) return "phone";
+      var night = isNightTime();
+      if (night && !rec.phoneOut) return "phone";
       if (hour >= 20 && !rec.youtubeOff) return "youtube";
-      if (hour >= 23 && rec.phoneOut) return "goodnight";
+      if (night && rec.phoneOut) return "goodnight";
       return "done";
     }
     // 未チェックイン
@@ -654,7 +715,7 @@ function SleepCoach() {
     sendEvent("committed", intention.trim());
     var hour = getHour();
     setWrong({});   // 夜のクイズに不正解マークを持ち越さない
-    if (hour >= 23) { setPhase("phone"); }
+    if (isNightTime()) { setPhase("phone"); }
     else if (hour >= 20) { setPhase("youtube"); }
     else { setPhase("done"); }
   }
