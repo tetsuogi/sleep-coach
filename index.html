@@ -309,13 +309,12 @@ var QUEUE_KEY = "sleep-coach-queue";
 /* ============================================================
    ユーティリティ
    ============================================================ */
-// デバッグフック: ?h=21&d=5 で時刻・曜日を偽装（本番動作には無影響）
+// デバッグフック: ?h=21 で時刻を偽装（本番動作には無影響）
 var DEBUG = (function() {
   var out = {};
   try {
     var p = new URLSearchParams(window.location.search);
     if (p.has("h")) out.hour = parseInt(p.get("h"), 10);
-    if (p.has("d")) out.day = parseInt(p.get("d"), 10); // 0=日 .. 6=土
   } catch (err) {}
   return out;
 })();
@@ -338,11 +337,6 @@ function logicalDate() {
   return d;
 }
 
-function getDayNum() {
-  if (typeof DEBUG.day === "number" && !isNaN(DEBUG.day)) return DEBUG.day;
-  return logicalDate().getDay();
-}
-
 function getToday() {
   var d = logicalDate();
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -357,12 +351,6 @@ function isNightTime() {
 function getDayOfWeek(dateStr) {
   var days = ["日", "月", "火", "水", "木", "金", "土"];
   return days[new Date(dateStr).getDay()];
-}
-
-// 金(5)・土(6)・日(0) はフリー選択可能な日
-function isWeekendChoice() {
-  var d = getDayNum();
-  return d === 5 || d === 6 || d === 0;
 }
 
 function hashStr(str) {
@@ -553,7 +541,7 @@ var S = {
   goodnightIcon: { fontSize: 64, marginBottom: 16 },
   goodnightTitle: { fontSize: 24, fontWeight: 800, color: "#f5f5f5", margin: "0 0 12px 0" },
   goodnightBody: { fontSize: 16, color: "#777", lineHeight: 1.6, whiteSpace: "pre-line" },
-  // 週末フリー選択
+  // 実行日 / フリー日の選択
   choiceCard: { maxWidth: 400, width: "100%", textAlign: "center", marginTop: 50 },
   choiceIcon: { fontSize: 48, marginBottom: 16 },
   choiceTitle: { fontSize: 24, fontWeight: 800, color: "#f5f5f5", margin: "0 0 10px 0" },
@@ -652,9 +640,8 @@ function SleepCoach() {
       if (night && rec.phoneOut) return "goodnight";
       return "done";
     }
-    // 未チェックイン
-    if (isWeekendChoice()) return "choice";    // 金土日は選択から
-    return "facts";
+    // 未チェックイン — 盆休みなど平日の休みもあるため、曜日を問わず毎日「今夜どうするか」から始める
+    return "choice";
   }
 
   function saveData(newData) {
@@ -690,7 +677,7 @@ function SleepCoach() {
     }
   }
 
-  // --- 週末フリー選択 ---
+  // --- 実行日 / フリー日の選択 ---
   function handleChooseExec() {
     setPhase("facts");
   }
@@ -782,8 +769,7 @@ function SleepCoach() {
     var rec = data.history[today] || {};
     if (rec.restDay) { setPhase("rest"); }
     else if (rec.committed) { setPhase("done"); }
-    else if (isWeekendChoice()) { setPhase("choice"); }
-    else { setPhase("facts"); }
+    else { setPhase("choice"); }
   }
 
   function handleReset() {
@@ -796,7 +782,7 @@ function SleepCoach() {
     setNightStep("quiz");
     setPhonePlace("");
     setTabletPlace("");
-    setPhase(isWeekendChoice() ? "choice" : "facts");
+    setPhase("choice");
   }
 
   // 週間データ
@@ -849,7 +835,7 @@ function SleepCoach() {
     return e("div", { style: S.container }, e("div", { style: S.loadingText }, "読み込み中..."));
   }
 
-  // --- 週末フリー選択 ---
+  // --- 実行日 / フリー日の選択（毎日）---
   if (phase === "choice") {
     return e("div", { style: S.container },
       e("div", { style: S.choiceCard },
@@ -857,7 +843,7 @@ function SleepCoach() {
         e("h2", { style: S.choiceTitle }, getDayOfWeek(today) + "曜日の夜"),
         e("p", { style: S.choiceBody }, "今夜はどうする？\n無理のない範囲で、正直に選べ。"),
         e("button", { style: S.choiceExecBtn, onClick: handleChooseExec }, "今夜も23:00消灯を守る"),
-        e("button", { style: S.choiceFreeBtn, onClick: handleChooseFree }, "今夜はフリー（夜更かしOK）")
+        e("button", { style: S.choiceFreeBtn, onClick: handleChooseFree }, "今日は休み。今夜はフリー")
       )
     );
   }
@@ -868,7 +854,7 @@ function SleepCoach() {
       e("div", { style: S.restCard },
         e("div", { style: S.restIcon }, "🍷"),
         e("h2", { style: S.restTitle }, "今夜はフリー"),
-        e("p", { style: S.restBody }, "良い週末を。\nただし翌日に響かせるな。\n\n夜更かししても、起きる時刻だけは\nできるだけ守ると回復が早い。"),
+        e("p", { style: S.restBody }, "良い休みを。\nただし翌日に響かせるな。\n\n夜更かししても、起きる時刻だけは\nできるだけ守ると回復が早い。"),
         data.streak > 0 ? e("div", { style: assign({}, S.streakBanner, { marginTop: 24 }) }, "🔥 連続達成: " + data.streak + "日（維持中）") : null,
         e("button", { style: S.resetBtn, onClick: handleReset }, "リセット（テスト用）")
       )
