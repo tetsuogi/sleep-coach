@@ -365,9 +365,26 @@ function logicalDate() {
   return d;
 }
 
-function getToday() {
-  var d = logicalDate();
+function fmtDate(d) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+function getToday() {
+  return fmtDate(logicalDate());
+}
+
+// その日が属する週（日曜始まり）の日曜を "yyyy-MM-dd" で返す。週次レビューの識別子に使う
+function weekKeyOf(d) {
+  var s = new Date(d);
+  s.setDate(s.getDate() - s.getDay());
+  return fmtDate(s);
+}
+
+// 指定日から n 日前の日付キー
+function dateKeyBefore(base, n) {
+  var d = new Date(base);
+  d.setDate(d.getDate() - n);
+  return fmtDate(d);
 }
 
 // 23:00〜翌3:59 が「今夜」の時間帯（スマホ追放〜おやすみ）
@@ -579,7 +596,20 @@ var S = {
   restCard: { maxWidth: 400, width: "100%", textAlign: "center", marginTop: 70 },
   restIcon: { fontSize: 64, marginBottom: 16 },
   restTitle: { fontSize: 24, fontWeight: 800, color: "#60a5fa", margin: "0 0 12px 0" },
-  restBody: { fontSize: 16, color: "#888", lineHeight: 1.7, whiteSpace: "pre-line" }
+  restBody: { fontSize: 16, color: "#888", lineHeight: 1.7, whiteSpace: "pre-line" },
+  // 週次レビュー
+  reviewCard: { maxWidth: 400, width: "100%", textAlign: "center", marginTop: 40 },
+  reviewRange: { fontSize: 13, color: "#555", marginBottom: 20 },
+  reviewStatRow: { display: "flex", gap: 8, marginBottom: 24 },
+  reviewStat: { flex: 1, backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "14px 6px" },
+  reviewStatValue: { fontSize: 22, fontWeight: 800, color: "#f5f5f5", fontVariantNumeric: "tabular-nums" },
+  reviewStatLabel: { fontSize: 11, color: "#666", marginTop: 4 },
+  reviewNote: { fontSize: 12, lineHeight: 1.6, color: "#777", textAlign: "left", marginTop: 8, marginBottom: 20 },
+  reviewFails: { backgroundColor: "#140a0a", border: "1px solid #3a1a1a", borderRadius: 12, padding: "16px 18px", textAlign: "left", marginBottom: 24 },
+  reviewFailsLabel: { fontSize: 11, color: "#ef4444", fontWeight: 700, letterSpacing: "0.08em", marginBottom: 10 },
+  reviewFailItem: { display: "flex", gap: 10, fontSize: 14, color: "#d0d0d0", lineHeight: 1.6, marginBottom: 6 },
+  reviewFailDay: { color: "#666", flexShrink: 0 },
+  reviewBtn: { width: "100%", padding: "16px 24px", backgroundColor: "#dc2626", color: "#fff", border: "none", borderRadius: 12, fontSize: 16, fontWeight: 800, cursor: "pointer" }
 };
 
 /* ============================================================
@@ -607,6 +637,10 @@ function SleepCoach() {
   var intentionState = useState("");
   var intention = intentionState[0], setIntention = intentionState[1];
 
+  // MCII の「望ましい結果」側。障害と対策（intention）より先に思い描かせる必要がある
+  var outcomeState = useState("");
+  var outcome = outcomeState[0], setOutcome = outcomeState[1];
+
   // 23:00 画面の進行: "quiz"（出題）→ "fact"（正解して本文を読む）→ "place"（置き場を書く）
   var nightStepState = useState("quiz");
   var nightStep = nightStepState[0], setNightStep = nightStepState[1];
@@ -620,13 +654,15 @@ function SleepCoach() {
   var roomDimState = useState("");   // 20:30 — リビングの照明をどう暗くしたか
   var roomDim = roomDimState[0], setRoomDim = roomDimState[1];
 
+  var failCauseState = useState("");  // 朝の報告 — 昨夜は何に負けたか
+  var failCause = failCauseState[0], setFailCause = failCauseState[1];
+
   var dataState = useState({ streak: 0, history: {}, lastCheckIn: null });
   var data = dataState[0], setData = dataState[1];
 
-  var morningResultState = useState(null);
-  var morningResult = morningResultState[0], setMorningResult = morningResultState[1];
-
-  // 朝の報告の進行: null（できた/できなかった）→ "lights"（消灯時刻）→ "wake"（起床時刻）
+  // 朝の報告の進行:
+  //   成功 … null（できた/できなかった）→ "lights"（消灯時刻）→ "wake"（起床時刻）
+  //   失敗 … null → "cause"（何に負けたか）→ "wake"
   var morningStepState = useState(null);
   var morningStep = morningStepState[0], setMorningStep = morningStepState[1];
 
@@ -657,9 +693,17 @@ function SleepCoach() {
     // 朝の未報告（前日が実行日=committedかつrestDayでない、かつ結果未報告）
     if (d.lastCheckIn && d.lastCheckIn !== today) {
       var prev = d.history[d.lastCheckIn];
-      if (prev && prev.committed && !prev.restDay && !prev.result) {
+      // result が undefined のときだけ未報告。false（失敗を報告済み）で再度聞くと
+      // 開き直すたびに報告できてしまい、失敗をストリーク加算に上書きできてしまう
+      if (prev && prev.committed && !prev.restDay && prev.result === undefined) {
         return "morning";
       }
+    }
+
+    // 週が変わって最初の起動なら、先週の総括を1回だけ挟む
+    // （朝の未報告より後。昨夜の結果を集計に含めてから見せるため）
+    if (d.lastReviewWeek !== weekKeyOf(logicalDate()) && lastWeekDays(d).some(hasRecord)) {
+      return "review";
     }
 
     if (rec.restDay) return "rest";           // 今日はフリーを選択済み
@@ -722,14 +766,15 @@ function SleepCoach() {
 
   // --- 誓い ---
   function handleCommit() {
-    if (intention.trim().length < 5) return;
+    var oc = outcome.trim(), it = intention.trim();
+    if (oc.length < 2 || it.length < 5) return;
     var today = getToday();
     var newHistory = assign({}, data.history);
     newHistory[today] = assign({}, newHistory[today], {
-      committed: true, time: new Date().toISOString(), intention: intention.trim()
+      committed: true, time: new Date().toISOString(), intention: it, outcome: oc
     });
     saveData(assign({}, data, { history: newHistory, lastCheckIn: today }));
-    sendEvent("committed", intention.trim());
+    sendEvent("committed", "結果:" + oc + " / 対策:" + it);
     setWrong({});   // 夜のクイズに不正解マークを持ち越さない
     if (isNightTime()) { setPhase("phone"); }
     else if (getNowMins() >= EVENING_ACTION_MINS) { setPhase("youtube"); }
@@ -757,7 +802,6 @@ function SleepCoach() {
 
   // --- 朝の報告 ---
   function handleMorningReport(success) {
-    setMorningResult(success);
     var yesterday = data.lastCheckIn;
     if (!yesterday) return;
     var newHistory = assign({}, data.history);
@@ -765,9 +809,36 @@ function SleepCoach() {
     var newStreak = success ? data.streak + 1 : 0;
     saveData(assign({}, data, { history: newHistory, streak: newStreak }));
     sendEvent("morning", success ? "success" : "fail");
-    // 成功なら消灯時刻から、失敗なら消灯時刻を飛ばして起床時刻を聞く
-    // （守れなかった夜こそ起床時刻を固定することが翌晩の立て直しになるため）
-    setMorningStep(success ? "lights" : "wake");
+    // 成功なら消灯時刻へ。失敗なら「何に負けたか」を書かせてから起床時刻へ
+    // （消灯時刻は聞かない。守れなかった夜こそ起床時刻の固定が翌晩の立て直しになる）
+    setMorningStep(success ? "lights" : "cause");
+  }
+
+  function handleFailCause() {
+    var c = failCause.trim();
+    if (c.length < 2) return;
+    var yesterday = data.lastCheckIn;
+    if (yesterday) {
+      var newHistory = assign({}, data.history);
+      newHistory[yesterday] = assign({}, newHistory[yesterday], { failCause: c });
+      saveData(assign({}, data, { history: newHistory }));
+      sendEvent("failCause", c);
+    }
+    setMorningStep("wake");
+  }
+
+  // 直近7日でいちばん新しい失敗の記録。翌晩の誓い画面に突き返すために使う
+  // （それより古い失敗を突きつけても行動には結びつかないので打ち切る）
+  function recentFailCause() {
+    var base = logicalDate();
+    for (var i = 1; i <= 7; i++) {
+      var key = dateKeyBefore(base, i);
+      var h = data.history[key];
+      if (h && h.failCause) {
+        return { cause: h.failCause, label: key.slice(5).replace("-", "/") + " " + getDayOfWeek(key) };
+      }
+    }
+    return null;
   }
 
   function handleLightsReport(optKey) {
@@ -783,24 +854,25 @@ function SleepCoach() {
 
   function handleWakeReport(optKey) {
     var yesterday = data.lastCheckIn;
+    var newData = data;
     if (yesterday) {
       var newHistory = assign({}, data.history);
       newHistory[yesterday] = assign({}, newHistory[yesterday], { wakeUp: optKey });
-      saveData(assign({}, data, { history: newHistory }));
+      newData = assign({}, data, { history: newHistory });
+      saveData(newData);
       sendEvent("wakeUp", optKey);
     }
-    advanceAfterMorning();
+    setMorningStep(null);
+    // 更新後のデータで判定し直す（state はまだ古いので明示的に渡す）。
+    // これで朝の報告を終えた直後にも週次レビューへ入れる
+    setPhase(decidePhase(newData));
   }
 
-  function advanceAfterMorning() {
-    setMorningResult(null);
-    setMorningStep(null);
-    // 報告後、今日のフェーズを再決定（データは最新のstateを使うためsetTimeoutで）
-    var today = getToday();
-    var rec = data.history[today] || {};
-    if (rec.restDay) { setPhase("rest"); }
-    else if (rec.committed) { setPhase("done"); }
-    else { setPhase("choice"); }
+  // 週次レビューを見終わったら、その週は再表示しない
+  function handleReviewDone() {
+    var newData = assign({}, data, { lastReviewWeek: weekKeyOf(logicalDate()) });
+    saveData(newData);
+    setPhase(decidePhase(newData));
   }
 
   function handleReset() {
@@ -810,21 +882,59 @@ function SleepCoach() {
     setWrong({});
     setRulesAcked(false);
     setIntention("");
+    setOutcome("");
     setNightStep("quiz");
     setPhonePlace("");
     setTabletPlace("");
     setRoomDim("");
+    setFailCause("");
+    setMorningStep(null);
     setPhase("choice");
   }
 
-  // 週間データ
-  var recentDays = [];
-  for (var i = 6; i >= 0; i--) {
-    var dd = new Date();
-    dd.setDate(dd.getDate() - i);
-    var key = dd.getFullYear() + "-" + String(dd.getMonth() + 1).padStart(2, "0") + "-" + String(dd.getDate()).padStart(2, "0");
-    recentDays.push(assign({ date: key, day: getDayOfWeek(key) }, data.history[key]));
+  // 指定した日付キーの配列を、履歴を合成した表示用の配列に変換する
+  function daysFromKeys(keys, history) {
+    return keys.map(function(key) {
+      return assign({ date: key, day: getDayOfWeek(key) }, history[key]);
+    });
   }
+
+  // 先週（日曜〜土曜）の7日分。週次レビューの集計対象
+  function lastWeekKeys() {
+    var sun = new Date(logicalDate());
+    sun.setDate(sun.getDate() - sun.getDay());   // 今週の日曜
+    var keys = [];
+    for (var i = 7; i >= 1; i--) { keys.push(dateKeyBefore(sun, i)); }
+    return keys;
+  }
+  function lastWeekDays(d) { return daysFromKeys(lastWeekKeys(), d.history); }
+  function hasRecord(dw) { return !!(dw.committed || dw.restDay); }
+
+  // 消灯・起床の記録を色バーで表示（ブレ＝規則性の可視化）。ルール画面と週次レビューで共用
+  function timeBars(days, options, field) {
+    return days.map(function(dw, idx) {
+      var opt = null;
+      for (var j = 0; j < options.length; j++) { if (options[j].key === dw[field]) opt = options[j]; }
+      return e("div", { key: idx, style: S.lightsCell },
+        e("div", { style: assign({}, S.lightsBar, { backgroundColor: opt ? opt.color : "#1a1a1a" }) })
+      );
+    });
+  }
+
+  // 記録のある日が options 上で何段階に散らばっているか（0＝全部同じ帯、3＝最大にバラバラ）
+  function spreadOf(days, options, field) {
+    var idxs = [];
+    days.forEach(function(dw) {
+      for (var j = 0; j < options.length; j++) { if (options[j].key === dw[field]) idxs.push(j); }
+    });
+    if (!idxs.length) return null;
+    return Math.max.apply(null, idxs) - Math.min.apply(null, idxs);
+  }
+
+  // 週間データ（論理日基準。深夜0:00〜3:59も「前日の夜」として同じ軸に乗せる）
+  var recentKeys = [];
+  for (var i = 6; i >= 0; i--) { recentKeys.push(dateKeyBefore(logicalDate(), i)); }
+  var recentDays = daysFromKeys(recentKeys, data.history);
 
   var rec = todayRecord(data);
   var today = getToday();
@@ -919,12 +1029,32 @@ function SleepCoach() {
           })
         )
       );
+    } else if (morningStep === "cause") {
+      // 失敗した夜だけ、何に負けたかを自分の言葉で書かせる。
+      // 書いた文言は翌晩の誓い画面に「前回つまずいたのは」として突き返される
+      var canCause = failCause.trim().length >= 2;
+      morningContent = e("div", null,
+        e("p", { style: { color: "#f59e0b", fontSize: 16, fontWeight: 700, marginBottom: 16 } }, "正直に報告できたことが大事です。"),
+        e("div", { style: S.placeBlock },
+          e("div", { style: S.placeLabel }, "何に負けた？"),
+          e("div", { style: S.intentionHint }, "例）夕食後にソファでそのまま2時間見た"),
+          e("input", {
+            style: S.placeInput,
+            value: failCause,
+            placeholder: "具体的に書く（2文字以上）",
+            onChange: function(ev) { setFailCause(ev.target.value); }
+          })
+        ),
+        e("button", {
+          style: assign({}, S.actionConfirmBtn, canCause ? { backgroundColor: "#f59e0b", color: "#000" } : S.commitBtnDisabled),
+          disabled: !canCause,
+          onClick: handleFailCause
+        }, canCause ? "記録する" : "何に負けたか書くと進めます"),
+        e("div", { style: S.wakeNote }, "これは責めるためではなく、明日の対策にするための記録。今夜の誓いを書くときに、この文が出てくる。")
+      );
     } else {
       // 起床時刻を質問（成功・失敗どちらの経路でも聞く）
       morningContent = e("div", null,
-        morningResult === false
-          ? e("p", { style: { color: "#f59e0b", fontSize: 16, fontWeight: 700, marginBottom: 4 } }, "正直に報告できたことが大事です。今夜こそ。")
-          : null,
         e("div", { style: S.lightsQuestion }, "今朝は何時に起きた？"),
         e("div", { style: S.lightsChoiceRow },
           WAKE_OPTIONS.map(function(opt) {
@@ -943,6 +1073,75 @@ function SleepCoach() {
         e("div", { style: { fontSize: 40, marginBottom: 12 } }, "🌅"),
         e("h2", { style: S.morningTitle }, "昨夜の結果報告"),
         morningContent
+      )
+    );
+  }
+
+  // --- 週次レビュー（週の初回起動時に1回だけ） ---
+  if (phase === "review") {
+    var wk = lastWeekDays(data);
+    var execDays = wk.filter(function(dw) { return dw.committed && !dw.restDay; });
+    var freeDays = wk.filter(function(dw) { return dw.restDay; });
+    var wonDays = execDays.filter(function(dw) { return dw.result === true; });
+    var rate = execDays.length ? Math.round(wonDays.length / execDays.length * 100) : null;
+    var lightsSpread = spreadOf(wk, LIGHTS_OPTIONS, "lightsOut");
+    var wakeSpread = spreadOf(wk, WAKE_OPTIONS, "wakeUp");
+    var fails = wk.filter(function(dw) { return dw.failCause; });
+
+    function spreadText(s) {
+      if (s === null) return "記録なし";
+      if (s === 0) return "ブレなし（全部同じ帯）";
+      return s + "段階のブレ";
+    }
+    function spreadColor(s) {
+      if (s === null) return "#555";
+      return ["#22c55e", "#84cc16", "#f59e0b", "#ef4444"][s];
+    }
+
+    return e("div", { style: S.container },
+      e("div", { style: S.reviewCard },
+        e("div", { style: { fontSize: 44, marginBottom: 10 } }, "📊"),
+        e("h2", { style: S.morningTitle }, "先週の結果"),
+        e("p", { style: S.reviewRange }, wk[0].date.slice(5).replace("-", "/") + " 〜 " + wk[6].date.slice(5).replace("-", "/")),
+
+        e("div", { style: S.reviewStatRow },
+          e("div", { style: S.reviewStat },
+            e("div", { style: S.reviewStatValue }, rate === null ? "—" : rate + "%"),
+            e("div", { style: S.reviewStatLabel }, "達成率")
+          ),
+          e("div", { style: S.reviewStat },
+            e("div", { style: S.reviewStatValue }, wonDays.length + "/" + execDays.length),
+            e("div", { style: S.reviewStatLabel }, "実行日の達成")
+          ),
+          e("div", { style: S.reviewStat },
+            e("div", { style: S.reviewStatValue }, freeDays.length + "日"),
+            e("div", { style: S.reviewStatLabel }, "フリー日")
+          )
+        ),
+
+        e("div", { style: S.sectionLabel }, "消灯時刻 — " + spreadText(lightsSpread)),
+        e("div", { style: S.lightsRow }, timeBars(wk, LIGHTS_OPTIONS, "lightsOut")),
+        e("div", { style: S.sectionLabel }, "起床時刻 — " + spreadText(wakeSpread)),
+        e("div", { style: S.lightsRow }, timeBars(wk, WAKE_OPTIONS, "wakeUp")),
+        e("div", { style: assign({}, S.reviewNote, { color: spreadColor(wakeSpread) }) },
+          wakeSpread === null || wakeSpread <= 1
+            ? "起床時刻が揃っている。体内時計のアンカーはここ。この調子で。"
+            : "起床時刻がバラついている。規則性は睡眠時間より強い死亡予測因子。まず起きる時刻を固定する。"),
+
+        fails.length
+          ? e("div", { style: S.reviewFails },
+              e("div", { style: S.reviewFailsLabel }, "先週つまずいた理由"),
+              fails.map(function(dw, idx) {
+                return e("div", { key: idx, style: S.reviewFailItem },
+                  e("span", { style: S.reviewFailDay }, dw.day),
+                  e("span", null, "「" + dw.failCause + "」")
+                );
+              }),
+              e("div", { style: S.reviewNote }, "同じ理由が並んでいるなら、それが今週いちばん先に潰すべき相手。")
+            )
+          : null,
+
+        e("button", { style: S.reviewBtn, onClick: handleReviewDone }, "今週を始める →")
       )
     );
   }
@@ -991,27 +1190,37 @@ function SleepCoach() {
       );
     });
 
-    // 消灯・起床それぞれの記録を色バーで表示（ブレ＝規則性の可視化）
-    function timeBars(options, field) {
-      return recentDays.map(function(dw, idx) {
-        var opt = null;
-        for (var j = 0; j < options.length; j++) { if (options[j].key === dw[field]) opt = options[j]; }
-        return e("div", { key: idx, style: S.lightsCell },
-          e("div", { style: assign({}, S.lightsBar, { backgroundColor: opt ? opt.color : "#1a1a1a" }) })
-        );
-      });
-    }
-    var lightsBars = timeBars(LIGHTS_OPTIONS, "lightsOut");
-    var wakeBars = timeBars(WAKE_OPTIONS, "wakeUp");
+    var lightsBars = timeBars(recentDays, LIGHTS_OPTIONS, "lightsOut");
+    var wakeBars = timeBars(recentDays, WAKE_OPTIONS, "wakeUp");
 
-    var canCommit = intention.trim().length >= 5;
+    var okOutcome = outcome.trim().length >= 2;
+    var okIntention = intention.trim().length >= 5;
+    var canCommit = okOutcome && okIntention;
+    var lastFail = recentFailCause();
     var bottomBtn;
     if (!rulesAcked) {
       bottomBtn = e("button", { style: S.ackBtn, onClick: function() { setRulesAcked(true); } }, "理解した。すべて読んだ。");
     } else {
       bottomBtn = e("div", null,
+        // 前回の失敗を突き返す（あれば）。誓いを書く直前に見せることに意味がある
+        lastFail ? e("div", { style: assign({}, S.intentionRecall, { borderColor: "#ef444455" }) },
+          e("div", { style: S.intentionRecallLabel }, "⚠️ 前回つまずいたのは（" + lastFail.label + "）"),
+          e("div", { style: assign({}, S.intentionRecallText, { color: "#ef4444" }) }, "「" + lastFail.cause + "」")
+        ) : null,
+        // MCII: 望ましい結果を先に思い描いてから、障害と対策を書く
         e("div", { style: S.intentionBlock },
-          e("div", { style: S.intentionLabel }, "今夜の最大の敵は？その対策は？"),
+          e("div", { style: S.intentionLabel }, "明日の朝、どうなっていたい？"),
+          e("div", { style: S.intentionHint }, "例）7時間眠れて、頭がすっきりしている"),
+          e("textarea", {
+            style: assign({}, S.intentionArea, { minHeight: 52 }),
+            value: outcome,
+            placeholder: "先に「うまくいった明日の朝」を思い描く（2文字以上）",
+            onChange: function(ev) { setOutcome(ev.target.value); }
+          }),
+          e("div", { style: S.intentionCount }, outcome.trim().length + " 文字")
+        ),
+        e("div", { style: S.intentionBlock },
+          e("div", { style: S.intentionLabel }, "では、今夜の最大の敵は？その対策は？"),
           e("div", { style: S.intentionHint }, "例）敵＝夕食後のYouTube／対策＝食べ終わったらすぐ風呂に入る"),
           e("textarea", {
             style: S.intentionArea,
@@ -1025,7 +1234,8 @@ function SleepCoach() {
           style: assign({}, S.commitBtn, canCommit ? {} : S.commitBtnDisabled),
           disabled: !canCommit,
           onClick: handleCommit
-        }, canCommit ? "今夜、23:00に消灯することを誓う" : "対策を書くと誓えます")
+        }, canCommit ? "今夜、23:00に消灯することを誓う"
+          : (!okOutcome ? "明日の朝の姿を書くと進めます" : "対策を書くと誓えます"))
       );
     }
 
@@ -1042,10 +1252,15 @@ function SleepCoach() {
     );
   }
 
-  // 共通: intention再表示ブロック
+  // 共通: 今朝書いた「望ましい結果」と「誓い」の再表示ブロック
+  // rec.outcome は v3.4 から。それ以前の記録には無いので誓いだけを出す
   function intentionRecall() {
     if (!rec.intention) return null;
     return e("div", { style: S.intentionRecall },
+      rec.outcome ? e("div", null,
+        e("div", { style: S.intentionRecallLabel }, "明日の朝、こうなっていたい:"),
+        e("div", { style: assign({}, S.intentionRecallText, { color: "#22c55e", marginBottom: 12 }) }, "「" + rec.outcome + "」")
+      ) : null,
       e("div", { style: S.intentionRecallLabel }, "今朝のあなたの誓い:"),
       e("div", { style: S.intentionRecallText }, "「" + rec.intention + "」")
     );
