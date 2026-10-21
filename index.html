@@ -18,7 +18,6 @@
       20%, 60% { transform: translateX(-8px); }
       40%, 80% { transform: translateX(8px); }
     }
-    textarea:focus, input:focus { outline: none; border-color: #dc2626 !important; }
   </style>
 </head>
 <body>
@@ -40,8 +39,8 @@ var GAS_URL = "https://script.google.com/macros/s/AKfycbyW2pnI_itkHuSoLAeEQRvv9p
 var GAS_TOKEN = "usaji-3355102";    // GAS側と一致させる合言葉
 
 /* ============================================================
-   恐怖ファクト（30件）— 各件にクイズを内蔵。slot で出題する時間帯を振り分ける
-   "evening" = 18:30のチェックインで3問 / "night" = 23:00の最終確認で1問 / "both" = 両方
+   恐怖ファクト（31件）— 各件にクイズを内蔵。slot で出題する時間帯を振り分ける
+   "evening" = 18:30のチェックインで1問 / "night" = 23:00の最終確認で1問 / "both" = 両方
    ============================================================ */
 var FACTS = [
   {
@@ -223,7 +222,7 @@ var FACTS = [
   {
     category: "部屋の明かり", icon: "🔦", slot: "evening",
     title: "リビングの照明が、眠気を後ろへずらしている",
-    body: "メラトニンを半分に抑えるのに必要な明るさは、平均でわずか約30ルクス。一般的な室内照明（約50ルクス）はこれを超えている。実際に測ると、家庭の約半数が「メラトニンを50%抑える明るさ」だった。夜更かしは意志の問題である前に、天井の照明の問題でもある。",
+    body: "メラトニンを半分に抑えるのに必要な明るさは、平均でわずか約30ルクス。一般的な室内照明（約50ルクス）はこれを超えている。実際に測ると、家庭の約半数が「メラトニンを50%抑える明るさ」だった。夜更かしは意志の問題である前に、シーリングライトの問題でもある。",
     source: "PNAS, 2019 / Scientific Reports, 2020",
     metric: "30ルクス", metricLabel: "メラトニンが半減する明るさ",
     quiz: { q: "メラトニン分泌を半分に抑えてしまう明るさの目安は？", choices: ["約30ルクス（普通の室内より暗い）", "約3000ルクス（曇りの屋外）", "明るさは関係ない"], answer: "約30ルクス（普通の室内より暗い）" }
@@ -235,6 +234,14 @@ var FACTS = [
     source: "PNAS, 2019 / Phillips et al.",
     metric: "50倍", metricLabel: "光感受性の個人差",
     quiz: { q: "夜の光に対する感受性の個人差はどれくらい？", choices: ["ほぼ全員同じ", "50倍以上の差がある", "2倍程度"], answer: "50倍以上の差がある" }
+  },
+  {
+    category: "入浴のタイミング", icon: "🛁", slot: "evening",
+    title: "風呂は、寝る1〜2時間前に出ておく",
+    body: "40〜42.5℃の入浴を就寝の1〜2時間前に10分以上とると、寝つきが早まる。温まった体が冷えていく過程で眠気が来るためで、寝る直前の入浴では間に合わない。効果は平均10分ほどと控えめだが、23:00に消灯するなら22:00までに出るのがちょうどこの範囲に入る。",
+    source: "Haghayegh et al. / Sleep Medicine Reviews, 2019（メタ分析）",
+    metric: "1〜2時間前", metricLabel: "寝つきを早める入浴のタイミング",
+    quiz: { q: "寝つきを早くする入浴は、就寝の何時間前？", choices: ["寝る直前", "1〜2時間前", "4時間以上前"], answer: "1〜2時間前" }
   },
   {
     category: "ベッドの中の画面", icon: "📱", slot: "night",
@@ -271,7 +278,7 @@ var FACTS = [
   {
     category: "夜の光", icon: "💡", slot: "night",
     title: "夜の光が、眠りのホルモンを止めている",
-    body: "夜に強い光を浴びるとメラトニンの分泌が抑制され、体内時計が後ろへずれる。しかも顔から数十cmの距離で見る画面は、天井の照明より目に届く光が強い。就寝1〜2時間前から照明を落とし、画面を目から遠ざける。",
+    body: "夜に強い光を浴びるとメラトニンの分泌が抑制され、体内時計が後ろへずれる。しかも顔から数十cmの距離で見る画面は、シーリングライトより目に届く光が強い。就寝1〜2時間前から照明を落とし、画面を目から遠ざける。",
     source: "光とメラトニン抑制に関する研究",
     metric: "メラトニン抑制", metricLabel: "夜に強い光を浴びる代償",
     quiz: { q: "夜に強い光を浴びると体内時計はどうなる？", choices: ["後ろにずれて眠くなくなる", "前倒しになって早く眠くなる", "影響しない"], answer: "後ろにずれて眠くなくなる" }
@@ -288,7 +295,7 @@ var FACTS = [
 
 var RULES = [
   { icon: "💡", text: "20:30にYouTubeを閉じ、リビングの照明を落とす" },
-  { icon: "🚪", text: "23:00にスマホとタブレットをリビングに置く" },
+  { icon: "🚪", text: "23:00にスマホとタブレットを寝室の外に置く" },
   { icon: "🛏️", text: "ベッドは眠るためだけの場所。画面を持ち込まない。" },
   { icon: "🔒", text: "おやすみモードでYouTube・X・Amazon・メルカリを遮断" },
   { icon: "🍳", text: "食事は時短に徹する。凝らない。" }
@@ -318,6 +325,30 @@ var WAKE_OPTIONS = [
   { key: "before800", label: "〜8:00", color: "#f59e0b" },
   { key: "after800", label: "8:00以降", color: "#ef4444" }
 ];
+
+// 今夜の敵（チェックインで1つ選ぶ）。選ぶと対策がセットされ、if-then プランが完成する。
+// 朝の「何に負けた？」も同じリストから選ばせ、週次レビューで予想と実際を突き合わせる
+var ENEMIES = [
+  { key: "net", label: "ネットサーフィン", sub: "YouTube・X・Amazon・メルカリ", counter: "食べ終わったら画面を閉じる。20:30以降は開かない" },
+  { key: "chores", label: "家事の後回し", counter: "食後すぐ片付ける。23時前に溜めない" },
+  { key: "bath", label: "入浴が遅い", counter: "22:00までに風呂を出る" },
+  { key: "meal", label: "食事が遅い・長い", counter: "食事は時短に徹する。凝らない" },
+  { key: "other", label: "その他", counter: "" }
+];
+
+// 敵の key → 項目。v3.4以前は誓い・敗因を自由記述で保存していたので、
+// key に一致しない文字列はそのまま見出しとして扱う（後方互換はここ1か所で吸収する）
+function enemyOf(v) {
+  if (!v) return null;
+  for (var i = 0; i < ENEMIES.length; i++) { if (ENEMIES[i].key === v) return ENEMIES[i]; }
+  return { key: null, label: v, counter: "" };
+}
+
+// 20:30 — リビングの照明をどう暗くしたか
+var LIGHT_DIM_OPTIONS = ["リビングを消灯した", "調光で落とした", "赤色灯にした"];
+
+// 23:00 — スマホ・タブレットの置き場（どちらも寝室の外）
+var PLACE_OPTIONS = ["寝室横", "リビング"];
 
 var STORAGE_KEY = "sleep-coach-data";
 var QUEUE_KEY = "sleep-coach-queue";
@@ -502,9 +533,6 @@ var S = {
     padding: "20px 16px", display: "flex", flexDirection: "column", alignItems: "center"
   },
   loadingText: { marginTop: 100, fontSize: 16, color: "#666" },
-  progressBar: { width: "100%", maxWidth: 400, height: 3, backgroundColor: "#222", borderRadius: 2, overflow: "hidden", marginBottom: 6 },
-  progressFill: { height: "100%", backgroundColor: "#dc2626", transition: "width 0.3s ease" },
-  progressLabel: { fontSize: 12, color: "#555", marginBottom: 20, fontVariantNumeric: "tabular-nums" },
   factCard: { width: "100%", maxWidth: 400, backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "28px 22px", marginBottom: 20 },
   categoryBadge: { fontSize: 12, color: "#dc2626", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 20 },
   metricBlock: { marginBottom: 22 },
@@ -526,13 +554,15 @@ var S = {
   ruleItem: { display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 10, marginBottom: 8 },
   ruleIcon: { fontSize: 22, flexShrink: 0 },
   ruleText: { fontSize: 15, color: "#d4d4d4", lineHeight: 1.5 },
-  // 記述欄
+  // 選択ボタン（今夜の敵・照明・置き場・敗因で共用）
   intentionBlock: { width: "100%", maxWidth: 400, marginBottom: 20 },
-  intentionLabel: { fontSize: 15, fontWeight: 700, color: "#f5f5f5", marginBottom: 6 },
-  intentionHint: { fontSize: 12, color: "#666", marginBottom: 10, lineHeight: 1.5 },
-  intentionArea: { width: "100%", minHeight: 72, padding: "12px 14px", backgroundColor: "#111", color: "#f5f5f5", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 15, fontFamily: "inherit", lineHeight: 1.5, resize: "vertical" },
-  intentionCount: { fontSize: 11, color: "#555", textAlign: "right", marginTop: 4 },
-  ackBtn: { width: "100%", maxWidth: 400, padding: "16px 24px", backgroundColor: "#222", color: "#999", border: "1px solid #333", borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: "pointer", marginTop: 8 },
+  intentionLabel: { fontSize: 15, fontWeight: 700, color: "#f5f5f5", marginBottom: 10 },
+  chipRow: { display: "flex", flexWrap: "wrap", gap: 8 },
+  chip: { flex: "1 1 45%", padding: "14px 10px", backgroundColor: "#161616", color: "#d4d4d4", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: "pointer", lineHeight: 1.35 },
+  chipSelected: { backgroundColor: "#2a0f0f", color: "#fff", border: "1px solid #dc2626" },
+  chipSub: { display: "block", fontSize: 11, color: "#777", fontWeight: 400, marginTop: 3 },
+  counterLine: { fontSize: 14, color: "#f59e0b", fontWeight: 600, marginTop: 12, lineHeight: 1.5, textAlign: "left" },
+  detailToggle: { background: "none", border: "none", color: "#777", fontSize: 13, padding: "4px 0 0", cursor: "pointer" },
   commitBtn: { width: "100%", maxWidth: 400, padding: "18px 24px", backgroundColor: "#dc2626", color: "#fff", border: "none", borderRadius: 10, fontSize: 17, fontWeight: 800, cursor: "pointer", marginTop: 8, letterSpacing: "0.02em" },
   commitBtnDisabled: { backgroundColor: "#3a1414", color: "#7a5555", cursor: "not-allowed" },
   streakBanner: { fontSize: 16, fontWeight: 700, color: "#f59e0b", textAlign: "center", padding: "10px 0", marginBottom: 16 },
@@ -547,10 +577,6 @@ var S = {
   // 朝
   morningCard: { maxWidth: 400, width: "100%", backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "32px 22px", textAlign: "center", marginTop: 40 },
   morningTitle: { fontSize: 20, fontWeight: 700, color: "#f5f5f5", margin: "0 0 12px 0" },
-  morningBody: { fontSize: 15, color: "#999", marginBottom: 24 },
-  morningButtons: { display: "flex", gap: 12, marginBottom: 8 },
-  successBtn: { flex: 1, padding: "14px 0", backgroundColor: "#14532d", color: "#22c55e", border: "1px solid #166534", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer" },
-  failBtn: { flex: 1, padding: "14px 0", backgroundColor: "#450a0a", color: "#ef4444", border: "1px solid #7f1d1d", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: "pointer" },
   lightsQuestion: { fontSize: 15, fontWeight: 700, color: "#f5f5f5", marginBottom: 14, marginTop: 8 },
   lightsChoiceRow: { display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" },
   lightsChoiceBtn: { flex: "1 1 45%", padding: "14px 0", backgroundColor: "#161616", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: "pointer" },
@@ -578,7 +604,6 @@ var S = {
   actionCheckDone: { color: "#22c55e", textDecoration: "line-through" },
   placeBlock: { textAlign: "left", marginBottom: 16 },
   placeLabel: { fontSize: 14, fontWeight: 700, color: "#f5f5f5", marginBottom: 8 },
-  placeInput: { width: "100%", padding: "13px 14px", backgroundColor: "#0a0a0a", color: "#f5f5f5", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 15, fontFamily: "inherit" },
   intentionRecall: { backgroundColor: "#0a0a0a", border: "1px dashed #333", borderRadius: 10, padding: "14px 16px", marginBottom: 20, textAlign: "left" },
   intentionRecallLabel: { fontSize: 11, color: "#666", marginBottom: 6 },
   intentionRecallText: { fontSize: 15, color: "#f59e0b", fontWeight: 600, lineHeight: 1.5, fontStyle: "italic" },
@@ -619,11 +644,11 @@ function SleepCoach() {
   var phaseState = useState("loading");
   var phase = phaseState[0], setPhase = phaseState[1];
 
-  var factIndexState = useState(0);
-  var factIndex = factIndexState[0], setFactIndex = factIndexState[1];
-
-  var factRevealedState = useState(false); // クイズ正解でファクト本文を開放
+  var factRevealedState = useState(false); // チェックインの1問に正解したか
   var factRevealed = factRevealedState[0], setFactRevealed = factRevealedState[1];
+
+  var detailOpenState = useState(false);   // 正解後のファクト本文を「詳しく」で開いたか
+  var detailOpen = detailOpenState[0], setDetailOpen = detailOpenState[1];
 
   var wrongState = useState({}); // {choice: true} 不正解マーク
   var wrong = wrongState[0], setWrong = wrongState[1];
@@ -631,17 +656,10 @@ function SleepCoach() {
   var shakeState = useState(false);
   var shake = shakeState[0], setShake = shakeState[1];
 
-  var rulesAckedState = useState(false);
-  var rulesAcked = rulesAckedState[0], setRulesAcked = rulesAckedState[1];
+  var enemyState = useState(null);  // チェックインで選んだ今夜の敵（ENEMIES の key）
+  var enemy = enemyState[0], setEnemy = enemyState[1];
 
-  var intentionState = useState("");
-  var intention = intentionState[0], setIntention = intentionState[1];
-
-  // MCII の「望ましい結果」側。障害と対策（intention）より先に思い描かせる必要がある
-  var outcomeState = useState("");
-  var outcome = outcomeState[0], setOutcome = outcomeState[1];
-
-  // 23:00 画面の進行: "quiz"（出題）→ "fact"（正解して本文を読む）→ "place"（置き場を書く）
+  // 23:00 画面の進行: "quiz"（出題）→ "fact"（正解して要点を見る）→ "place"（置き場を選ぶ）
   var nightStepState = useState("quiz");
   var nightStep = nightStepState[0], setNightStep = nightStepState[1];
 
@@ -651,23 +669,14 @@ function SleepCoach() {
   var tabletPlaceState = useState("");
   var tabletPlace = tabletPlaceState[0], setTabletPlace = tabletPlaceState[1];
 
-  var roomDimState = useState("");   // 20:30 — リビングの照明をどう暗くしたか
-  var roomDim = roomDimState[0], setRoomDim = roomDimState[1];
-
-  var failCauseState = useState("");  // 朝の報告 — 昨夜は何に負けたか
-  var failCause = failCauseState[0], setFailCause = failCauseState[1];
-
   var dataState = useState({ streak: 0, history: {}, lastCheckIn: null });
   var data = dataState[0], setData = dataState[1];
 
   // 朝の報告の進行:
-  //   成功 … null（できた/できなかった）→ "lights"（消灯時刻）→ "wake"（起床時刻）
-  //   失敗 … null → "cause"（何に負けたか）→ "wake"
+  //   消灯時刻（null）で成否が決まる。〜23:00 → "wake"（起床時刻）
+  //   それ以外 → "cause"（何に負けたか）→ "wake"
   var morningStepState = useState(null);
   var morningStep = morningStepState[0], setMorningStep = morningStepState[1];
-
-  var todayFactsState = useState([]);
-  var todayFacts = todayFactsState[0], setTodayFacts = todayFactsState[1];
 
   useEffect(function() {
     var loadedData;
@@ -679,9 +688,6 @@ function SleepCoach() {
 
     setData(loadedData);
     flushQueue(); // 溜まった未送信イベントを再送
-
-    var today = getToday();
-    setTodayFacts(pickFacts(today, "evening", 3));   // 23:00にも1問出すため、チェックインは3問
     setPhase(decidePhase(loadedData));
   }, []);
 
@@ -741,19 +747,9 @@ function SleepCoach() {
     }
   }
 
-  function handleNextFact() {
-    if (factIndex < todayFacts.length - 1) {
-      setFactIndex(factIndex + 1);
-      setFactRevealed(false);
-      setWrong({});
-    } else {
-      setPhase("rules");
-    }
-  }
-
   // --- 実行日 / フリー日の選択 ---
   function handleChooseExec() {
-    setPhase("facts");
+    setPhase("checkin");
   }
   function handleChooseFree() {
     var today = getToday();
@@ -766,32 +762,32 @@ function SleepCoach() {
 
   // --- 誓い ---
   function handleCommit() {
-    var oc = outcome.trim(), it = intention.trim();
-    if (oc.length < 2 || it.length < 5) return;
+    var en = enemyOf(enemy);
+    if (!factRevealed || !en) return;
     var today = getToday();
     var newHistory = assign({}, data.history);
     newHistory[today] = assign({}, newHistory[today], {
-      committed: true, time: new Date().toISOString(), intention: it, outcome: oc
+      committed: true, time: new Date().toISOString(), intention: en.key
     });
     saveData(assign({}, data, { history: newHistory, lastCheckIn: today }));
-    sendEvent("committed", "結果:" + oc + " / 対策:" + it);
-    setWrong({});   // 夜のクイズに不正解マークを持ち越さない
+    sendEvent("committed", "敵:" + en.label + (en.counter ? " / 対策:" + en.counter : ""));
+    setWrong({});        // 夜のクイズに不正解マークを持ち越さない
+    setDetailOpen(false);
     if (isNightTime()) { setPhase("phone"); }
     else if (getNowMins() >= EVENING_ACTION_MINS) { setPhase("youtube"); }
     else { setPhase("done"); }
   }
 
-  function handleYoutubeOff() {
-    var r = roomDim.trim();
-    if (r.length < 2) return;
-    updateTodayRecord({ youtubeOff: true, youtubeOffTime: new Date().toISOString(), roomDim: r });
-    sendEvent("youtubeOff", "照明:" + r);
+  // 20:30 — 照明をどう暗くしたかを選んだ時点で完了（確認ボタンは置かない）
+  function handleYoutubeOff(label) {
+    updateTodayRecord({ youtubeOff: true, youtubeOffTime: new Date().toISOString(), roomDim: label });
+    sendEvent("youtubeOff", "照明:" + label);
     setPhase("done");
   }
 
   function handlePhoneOut() {
-    var p = phonePlace.trim(), t = tabletPlace.trim();
-    if (p.length < 2 || t.length < 2) return;
+    var p = phonePlace, t = tabletPlace;
+    if (!p || !t) return;
     updateTodayRecord({
       phoneOut: true, phoneOutTime: new Date().toISOString(),
       phonePlace: p, tabletPlace: t
@@ -801,28 +797,28 @@ function SleepCoach() {
   }
 
   // --- 朝の報告 ---
-  function handleMorningReport(success) {
+  // 消灯時刻を選ぶだけで成否が決まる（〜23:00 のみ達成）。失敗した夜も消灯時刻は残る
+  function handleLightsOutReport(optKey) {
     var yesterday = data.lastCheckIn;
     if (!yesterday) return;
+    var success = optKey === "before23";
     var newHistory = assign({}, data.history);
-    newHistory[yesterday] = assign({}, newHistory[yesterday], { result: success });
+    newHistory[yesterday] = assign({}, newHistory[yesterday], { result: success, lightsOut: optKey });
     var newStreak = success ? data.streak + 1 : 0;
     saveData(assign({}, data, { history: newHistory, streak: newStreak }));
     sendEvent("morning", success ? "success" : "fail");
-    // 成功なら消灯時刻へ。失敗なら「何に負けたか」を書かせてから起床時刻へ
-    // （消灯時刻は聞かない。守れなかった夜こそ起床時刻の固定が翌晩の立て直しになる）
-    setMorningStep(success ? "lights" : "cause");
+    sendEvent("lightsOut", optKey);
+    // 失敗なら何に負けたかを選ばせてから起床時刻へ
+    setMorningStep(success ? "wake" : "cause");
   }
 
-  function handleFailCause() {
-    var c = failCause.trim();
-    if (c.length < 2) return;
+  function handleFailCause(key) {
     var yesterday = data.lastCheckIn;
     if (yesterday) {
       var newHistory = assign({}, data.history);
-      newHistory[yesterday] = assign({}, newHistory[yesterday], { failCause: c });
+      newHistory[yesterday] = assign({}, newHistory[yesterday], { failCause: key });
       saveData(assign({}, data, { history: newHistory }));
-      sendEvent("failCause", c);
+      sendEvent("failCause", enemyOf(key).label);
     }
     setMorningStep("wake");
   }
@@ -835,21 +831,10 @@ function SleepCoach() {
       var key = dateKeyBefore(base, i);
       var h = data.history[key];
       if (h && h.failCause) {
-        return { cause: h.failCause, label: key.slice(5).replace("-", "/") + " " + getDayOfWeek(key) };
+        return { cause: enemyOf(h.failCause).label, label: key.slice(5).replace("-", "/") + " " + getDayOfWeek(key) };
       }
     }
     return null;
-  }
-
-  function handleLightsReport(optKey) {
-    var yesterday = data.lastCheckIn;
-    if (yesterday) {
-      var newHistory = assign({}, data.history);
-      newHistory[yesterday] = assign({}, newHistory[yesterday], { lightsOut: optKey });
-      saveData(assign({}, data, { history: newHistory }));
-      sendEvent("lightsOut", optKey);
-    }
-    setMorningStep("wake");
   }
 
   function handleWakeReport(optKey) {
@@ -877,17 +862,13 @@ function SleepCoach() {
 
   function handleReset() {
     saveData({ streak: 0, history: {}, lastCheckIn: null });
-    setFactIndex(0);
     setFactRevealed(false);
+    setDetailOpen(false);
     setWrong({});
-    setRulesAcked(false);
-    setIntention("");
-    setOutcome("");
+    setEnemy(null);
     setNightStep("quiz");
     setPhonePlace("");
     setTabletPlace("");
-    setRoomDim("");
-    setFailCause("");
     setMorningStep(null);
     setPhase("choice");
   }
@@ -939,8 +920,9 @@ function SleepCoach() {
   var rec = todayRecord(data);
   var today = getToday();
 
-  // クイズカード（18:30のファクト画面と23:00の最終確認で共用）
-  // revealed が false なら3択クイズ、true なら正解後のファクト本文を描画する
+  // クイズカード（18:30のチェックインと23:00の最終確認で共用）
+  // revealed が false なら3択クイズ、true なら正解後の要点（数値と見出し）を描画する。
+  // 毎日読む量を減らすため、本文と出典は「詳しく」を押したときだけ開く
   function quizCard(fact, salt, revealed, onCorrect) {
     if (revealed) {
       return e("div", { style: S.factCard },
@@ -949,9 +931,13 @@ function SleepCoach() {
           e("div", { style: S.metricValue }, fact.metric),
           e("div", { style: S.metricLabel }, fact.metricLabel)
         ),
-        e("h2", { style: S.factTitle }, fact.title),
-        e("p", { style: S.factBody }, fact.body),
-        e("p", { style: S.factSource }, fact.source)
+        e("h2", { style: assign({}, S.factTitle, { marginBottom: 4 }) }, fact.title),
+        detailOpen
+          ? e("div", { style: { marginTop: 12 } },
+              e("p", { style: S.factBody }, fact.body),
+              e("p", { style: S.factSource }, fact.source)
+            )
+          : e("button", { style: S.detailToggle, onClick: function() { setDetailOpen(true); } }, "詳しく ▾")
       );
     }
     return e("div", { style: assign({}, S.factCard, shake ? { animation: "shake 0.4s" } : {}) },
@@ -1006,55 +992,41 @@ function SleepCoach() {
   // --- 朝の報告 ---
   if (phase === "morning") {
     var morningContent;
+    var lastNight = data.history[data.lastCheckIn] || {};
     if (morningStep === null) {
+      // 消灯時刻を選ぶだけで成否が決まる（〜23:00 のみ達成）
       morningContent = e("div", null,
-        e("p", { style: S.morningBody }, "23:00までにスマホとタブレットを手放して消灯できましたか？"),
-        e("div", { style: S.morningButtons },
-          e("button", { style: S.successBtn, onClick: function() { handleMorningReport(true); } }, "✓ できた"),
-          e("button", { style: S.failBtn, onClick: function() { handleMorningReport(false); } }, "✗ できなかった")
-        )
-      );
-    } else if (morningStep === "lights") {
-      // 消灯時刻を質問
-      morningContent = e("div", null,
-        e("p", { style: { color: "#22c55e", fontSize: 16, fontWeight: 700, marginBottom: 4 } }, "素晴らしい。"),
-        e("div", { style: S.lightsQuestion }, "実際に消灯したのは何時ごろ？"),
+        e("div", { style: S.lightsQuestion }, "昨夜、画面を手放して消灯したのは何時？"),
         e("div", { style: S.lightsChoiceRow },
           LIGHTS_OPTIONS.map(function(opt) {
             return e("button", {
               key: opt.key,
               style: assign({}, S.lightsChoiceBtn, { color: opt.color, borderColor: opt.color + "55" }),
-              onClick: function() { handleLightsReport(opt.key); }
+              onClick: function() { handleLightsOutReport(opt.key); }
             }, opt.label);
           })
-        )
+        ),
+        e("div", { style: S.wakeNote }, "〜23:00 なら達成。それより遅ければ、正直にその時刻を選ぶ。")
       );
     } else if (morningStep === "cause") {
-      // 失敗した夜だけ、何に負けたかを自分の言葉で書かせる。
-      // 書いた文言は翌晩の誓い画面に「前回つまずいたのは」として突き返される
-      var canCause = failCause.trim().length >= 2;
+      // 失敗した夜だけ、何に負けたかをチェックインの「今夜の敵」と同じリストから選ばせる。
+      // 選んだ相手は翌晩のチェックインで「前回つまずいたのは」として突き返される
       morningContent = e("div", null,
-        e("p", { style: { color: "#f59e0b", fontSize: 16, fontWeight: 700, marginBottom: 16 } }, "正直に報告できたことが大事です。"),
-        e("div", { style: S.placeBlock },
-          e("div", { style: S.placeLabel }, "何に負けた？"),
-          e("div", { style: S.intentionHint }, "例）夕食後にソファでそのまま2時間見た"),
-          e("input", {
-            style: S.placeInput,
-            value: failCause,
-            placeholder: "具体的に書く（2文字以上）",
-            onChange: function(ev) { setFailCause(ev.target.value); }
+        e("p", { style: { color: "#f59e0b", fontSize: 16, fontWeight: 700, marginBottom: 4 } }, "正直に報告できたことが大事です。"),
+        e("div", { style: S.lightsQuestion }, "何に負けた？"),
+        e("div", { style: S.chipRow },
+          ENEMIES.map(function(en) {
+            return e("button", { key: en.key, style: S.chip, onClick: function() { handleFailCause(en.key); } },
+              en.label, en.sub ? e("span", { style: S.chipSub }, en.sub) : null);
           })
-        ),
-        e("button", {
-          style: assign({}, S.actionConfirmBtn, canCause ? { backgroundColor: "#f59e0b", color: "#000" } : S.commitBtnDisabled),
-          disabled: !canCause,
-          onClick: handleFailCause
-        }, canCause ? "記録する" : "何に負けたか書くと進めます"),
-        e("div", { style: S.wakeNote }, "これは責めるためではなく、明日の対策にするための記録。今夜の誓いを書くときに、この文が出てくる。")
+        )
       );
     } else {
       // 起床時刻を質問（成功・失敗どちらの経路でも聞く）
       morningContent = e("div", null,
+        lastNight.result === true
+          ? e("p", { style: { color: "#22c55e", fontSize: 16, fontWeight: 700, marginBottom: 4 } }, "達成。")
+          : null,
         e("div", { style: S.lightsQuestion }, "今朝は何時に起きた？"),
         e("div", { style: S.lightsChoiceRow },
           WAKE_OPTIONS.map(function(opt) {
@@ -1087,6 +1059,20 @@ function SleepCoach() {
     var lightsSpread = spreadOf(wk, LIGHTS_OPTIONS, "lightsOut");
     var wakeSpread = spreadOf(wk, WAKE_OPTIONS, "wakeUp");
     var fails = wk.filter(function(dw) { return dw.failCause; });
+
+    // 敗因ごとの回数（多い順）。v3.4以前の自由記述は、それぞれ1つの敗因として数える
+    var causeCounts = {};
+    fails.forEach(function(dw) {
+      var label = enemyOf(dw.failCause).label;
+      causeCounts[label] = (causeCounts[label] || 0) + 1;
+    });
+    var causeLabels = Object.keys(causeCounts).sort(function(a, b) { return causeCounts[b] - causeCounts[a]; });
+
+    // 夜に警戒した敵と、朝に申告した敗因は一致していたか。
+    // 両方とも選択式の記録で、かつ「その他」でない日だけを判定対象にする
+    function isJudgeable(v) { var en = enemyOf(v); return !!(en && en.key && en.key !== "other"); }
+    var judged = fails.filter(function(dw) { return isJudgeable(dw.intention) && isJudgeable(dw.failCause); });
+    var matched = judged.filter(function(dw) { return dw.intention === dw.failCause; });
 
     function spreadText(s) {
       if (s === null) return "記録なし";
@@ -1130,14 +1116,21 @@ function SleepCoach() {
 
         fails.length
           ? e("div", { style: S.reviewFails },
-              e("div", { style: S.reviewFailsLabel }, "先週つまずいた理由"),
-              fails.map(function(dw, idx) {
-                return e("div", { key: idx, style: S.reviewFailItem },
-                  e("span", { style: S.reviewFailDay }, dw.day),
-                  e("span", null, "「" + dw.failCause + "」")
+              e("div", { style: S.reviewFailsLabel }, "先週の敗因"),
+              causeLabels.map(function(label) {
+                return e("div", { key: label, style: S.reviewFailItem },
+                  e("span", null, label),
+                  e("span", { style: S.reviewFailDay }, "×" + causeCounts[label])
                 );
               }),
-              e("div", { style: S.reviewNote }, "同じ理由が並んでいるなら、それが今週いちばん先に潰すべき相手。")
+              judged.length
+                ? e("div", { style: assign({}, S.reviewNote, { marginBottom: 0 }) },
+                    "警戒した敵にそのまま負けた日: " + matched.length + "/" + judged.length + "日。",
+                    e("br"),
+                    matched.length * 2 >= judged.length
+                      ? "敵の見立ては合っている。足りないのは対策の強さ。"
+                      : "警戒した相手とは別のものに負けている。敵の選び方を見直す。")
+                : e("div", { style: assign({}, S.reviewNote, { marginBottom: 0 }) }, "いちばん多い敗因が、今週いちばん先に潰すべき相手。")
             )
           : null,
 
@@ -1146,34 +1139,16 @@ function SleepCoach() {
     );
   }
 
-  // --- ファクト（クイズ→本文） ---
-  if (phase === "facts") {
-    var fact = todayFacts[factIndex];
-    if (!fact) return null;
-    var progress = factIndex + 1;
-    var total = todayFacts.length;
+  // --- チェックイン（1画面: 今日の1問 → 今夜の敵 → 誓う） ---
+  if (phase === "checkin") {
+    var fact = pickFacts(today, "evening", 1)[0];
+    var lastFail = recentFailCause();
+    var chosen = enemyOf(enemy);
 
-    var cardInner = quizCard(fact, "-q" + factIndex, factRevealed, function() { setFactRevealed(true); });
-
-    return e("div", { style: S.container },
-      e("div", { style: S.progressBar },
-        e("div", { style: assign({}, S.progressFill, { width: (progress / total * 100) + "%" }) })
-      ),
-      e("div", { style: S.progressLabel }, progress + " / " + total),
-      cardInner,
-      factRevealed
-        ? e("button", { style: S.nextBtn, onClick: handleNextFact },
-            factIndex < todayFacts.length - 1 ? "次の問題へ →" : "ルール確認へ →")
-        : null
-    );
-  }
-
-  // --- ルール + 記述欄 ---
-  if (phase === "rules") {
     var ruleItems = RULES.map(function(r, idx) {
-      return e("div", { key: idx, style: S.ruleItem },
-        e("span", { style: S.ruleIcon }, r.icon),
-        e("span", { style: S.ruleText }, r.text)
+      return e("div", { key: idx, style: assign({}, S.ruleItem, { padding: "9px 14px", marginBottom: 6 }) },
+        e("span", { style: assign({}, S.ruleIcon, { fontSize: 18 }) }, r.icon),
+        e("span", { style: assign({}, S.ruleText, { fontSize: 13 }) }, r.text)
       );
     });
 
@@ -1193,82 +1168,64 @@ function SleepCoach() {
     var lightsBars = timeBars(recentDays, LIGHTS_OPTIONS, "lightsOut");
     var wakeBars = timeBars(recentDays, WAKE_OPTIONS, "wakeUp");
 
-    var okOutcome = outcome.trim().length >= 2;
-    var okIntention = intention.trim().length >= 5;
-    var canCommit = okOutcome && okIntention;
-    var lastFail = recentFailCause();
-    var bottomBtn;
-    if (!rulesAcked) {
-      bottomBtn = e("button", { style: S.ackBtn, onClick: function() { setRulesAcked(true); } }, "理解した。すべて読んだ。");
-    } else {
-      bottomBtn = e("div", null,
-        // 前回の失敗を突き返す（あれば）。誓いを書く直前に見せることに意味がある
+    return e("div", { style: S.container },
+      e("h2", { style: assign({}, S.rulesTitle, { marginBottom: 14 }) }, getDayOfWeek(today) + "曜日のチェックイン"),
+      e("div", { style: S.sectionLabel }, "今日の1問"),
+      quizCard(fact, "-q0", factRevealed, function() { setFactRevealed(true); }),
+
+      // 正解すると「今夜の敵」と誓うボタンが開く
+      factRevealed ? e("div", { style: S.intentionBlock },
+        // 前回の失敗を突き返す（あれば）。敵を選ぶ直前に見せることに意味がある
         lastFail ? e("div", { style: assign({}, S.intentionRecall, { borderColor: "#ef444455" }) },
           e("div", { style: S.intentionRecallLabel }, "⚠️ 前回つまずいたのは（" + lastFail.label + "）"),
-          e("div", { style: assign({}, S.intentionRecallText, { color: "#ef4444" }) }, "「" + lastFail.cause + "」")
+          e("div", { style: assign({}, S.intentionRecallText, { color: "#ef4444" }) }, lastFail.cause)
         ) : null,
-        // MCII: 望ましい結果を先に思い描いてから、障害と対策を書く
-        e("div", { style: S.intentionBlock },
-          e("div", { style: S.intentionLabel }, "明日の朝、どうなっていたい？"),
-          e("div", { style: S.intentionHint }, "例）7時間眠れて、頭がすっきりしている"),
-          e("textarea", {
-            style: assign({}, S.intentionArea, { minHeight: 52 }),
-            value: outcome,
-            placeholder: "先に「うまくいった明日の朝」を思い描く（2文字以上）",
-            onChange: function(ev) { setOutcome(ev.target.value); }
-          }),
-          e("div", { style: S.intentionCount }, outcome.trim().length + " 文字")
+        e("div", { style: S.intentionLabel }, "今夜の敵は？"),
+        e("div", { style: S.chipRow },
+          ENEMIES.map(function(en) {
+            return e("button", {
+              key: en.key,
+              style: assign({}, S.chip, enemy === en.key ? S.chipSelected : {}),
+              onClick: function() { setEnemy(en.key); }
+            }, en.label, en.sub ? e("span", { style: S.chipSub }, en.sub) : null);
+          })
         ),
-        e("div", { style: S.intentionBlock },
-          e("div", { style: S.intentionLabel }, "では、今夜の最大の敵は？その対策は？"),
-          e("div", { style: S.intentionHint }, "例）敵＝夕食後のYouTube／対策＝食べ終わったらすぐ風呂に入る"),
-          e("textarea", {
-            style: S.intentionArea,
-            value: intention,
-            placeholder: "ここに1文書く（5文字以上）",
-            onChange: function(ev) { setIntention(ev.target.value); }
-          }),
-          e("div", { style: S.intentionCount }, intention.trim().length + " 文字")
-        ),
+        chosen && chosen.counter ? e("div", { style: S.counterLine }, "→ 対策：" + chosen.counter) : null,
         e("button", {
-          style: assign({}, S.commitBtn, canCommit ? {} : S.commitBtnDisabled),
-          disabled: !canCommit,
+          style: assign({}, S.commitBtn, { marginTop: 18 }, chosen ? {} : S.commitBtnDisabled),
+          disabled: !chosen,
           onClick: handleCommit
-        }, canCommit ? "今夜、23:00に消灯することを誓う"
-          : (!okOutcome ? "明日の朝の姿を書くと進めます" : "対策を書くと誓えます"))
-      );
-    }
+        }, chosen ? "今夜、23:00に消灯することを誓う" : "今夜の敵を選ぶと誓えます")
+      ) : null,
 
-    return e("div", { style: S.container },
-      e("h2", { style: S.rulesTitle }, "今夜守る5つのルール"),
-      e("div", { style: S.rulesList }, ruleItems),
+      // 下部: 今夜のルールと記録
+      e("div", { style: assign({}, S.rulesList, { marginTop: 12 }) },
+        e("div", { style: S.sectionLabel }, "今夜のルール"),
+        ruleItems
+      ),
       data.streak > 0 ? e("div", { style: S.streakBanner }, "🔥 現在の連続達成: " + data.streak + "日") : null,
       e("div", { style: S.weekGrid }, weekDots),
       e("div", { style: S.sectionLabel }, "消灯時刻の記録"),
       e("div", { style: S.lightsRow }, lightsBars),
       e("div", { style: S.sectionLabel }, "起床時刻の記録"),
-      e("div", { style: S.lightsRow }, wakeBars),
-      bottomBtn
+      e("div", { style: S.lightsRow }, wakeBars)
     );
   }
 
-  // 共通: 今朝書いた「望ましい結果」と「誓い」の再表示ブロック
-  // rec.outcome は v3.4 から。それ以前の記録には無いので誓いだけを出す
+  // 共通: 今朝選んだ「今夜の敵」と対策の再表示ブロック（20:30 / 23:00）
+  // v3.4以前の記録は intention が自由記述なので、そのまま「誓い」として出す
   function intentionRecall() {
-    if (!rec.intention) return null;
+    var en = enemyOf(rec.intention);
+    if (!en) return null;
     return e("div", { style: S.intentionRecall },
-      rec.outcome ? e("div", null,
-        e("div", { style: S.intentionRecallLabel }, "明日の朝、こうなっていたい:"),
-        e("div", { style: assign({}, S.intentionRecallText, { color: "#22c55e", marginBottom: 12 }) }, "「" + rec.outcome + "」")
-      ) : null,
-      e("div", { style: S.intentionRecallLabel }, "今朝のあなたの誓い:"),
-      e("div", { style: S.intentionRecallText }, "「" + rec.intention + "」")
+      e("div", { style: S.intentionRecallLabel }, en.key ? "今夜の敵:" : "今朝のあなたの誓い:"),
+      e("div", { style: S.intentionRecallText }, en.key ? en.label : "「" + en.label + "」"),
+      en.counter ? e("div", { style: assign({}, S.counterLine, { marginTop: 8 }) }, "→ 対策：" + en.counter) : null
     );
   }
 
   // --- YouTube + 照明 (20:30~) ---
   if (phase === "youtube") {
-    var canDim = roomDim.trim().length >= 2;
     return e("div", { style: S.container },
       e("div", { style: S.actionCard },
         e("div", { style: S.actionIcon }, "💡"),
@@ -1279,28 +1236,25 @@ function SleepCoach() {
         e("div", { style: S.actionChecklist },
           e("div", { style: S.actionCheckItem }, "1. YouTubeアプリを閉じる（スマホもタブレットも）"),
           e("div", { style: S.actionCheckItem }, "2. X（Twitter）・Amazon・メルカリも閉じる"),
-          e("div", { style: S.actionCheckItem }, "3. リビングの天井照明を消す・落とす"),
-          e("div", { style: S.actionCheckItem }, "4. 手元だけを間接照明・電球色で照らす")
+          e("div", { style: S.actionCheckItem }, "3. リビングのシーリングライトを消す・調光で落とす"),
+          e("div", { style: S.actionCheckItem }, "4. 手元は間接照明か赤色灯にする")
         ),
+        // 実際にやった方法を選んだ時点で完了（選ぶこと自体が「やった」という証言になる）
         e("div", { style: S.placeBlock },
           e("div", { style: S.placeLabel }, "リビングの照明を、今どうした？"),
-          e("input", {
-            style: S.placeInput,
-            value: roomDim,
-            placeholder: "例）天井を消して、ソファの間接照明だけにした",
-            onChange: function(ev) { setRoomDim(ev.target.value); }
+          LIGHT_DIM_OPTIONS.map(function(label) {
+            return e("button", {
+              key: label,
+              style: assign({}, S.chip, { width: "100%", marginBottom: 8 }),
+              onClick: function() { handleYoutubeOff(label); }
+            }, label);
           })
-        ),
-        e("button", {
-          style: assign({}, S.actionConfirmBtn, canDim ? {} : S.commitBtnDisabled),
-          disabled: !canDim,
-          onClick: handleYoutubeOff
-        }, canDim ? "閉じた。暗くした。" : "照明をどうしたか書くと完了できます")
+        )
       )
     );
   }
 
-  // --- Phone (23:00~) : ①夜のクイズ → ②ファクト本文 → ③置き場の記述 ---
+  // --- Phone (23:00~) : ①夜のクイズ → ②ファクトの要点 → ③置き場の選択 ---
   if (phase === "phone") {
     var nightFact = pickFacts(today, "night", 1)[0];
 
@@ -1316,45 +1270,43 @@ function SleepCoach() {
       );
     }
 
-    // ③: 2台それぞれの置き場を自分の言葉で書かせる
-    var canPlace = phonePlace.trim().length >= 2 && tabletPlace.trim().length >= 2;
+    // ③: 2台それぞれ、今どこにあるかを選ばせる（選択肢はどちらも寝室の外）
+    var canPlace = !!(phonePlace && tabletPlace);
+    function placeRow(label, value, setValue) {
+      return e("div", { style: S.placeBlock },
+        e("div", { style: S.placeLabel }, label),
+        e("div", { style: S.chipRow },
+          PLACE_OPTIONS.map(function(p) {
+            return e("button", {
+              key: p,
+              style: assign({}, S.chip, value === p ? S.chipSelected : {}),
+              onClick: function() { setValue(p); }
+            }, p);
+          })
+        )
+      );
+    }
     return e("div", { style: S.container },
       e("div", { style: assign({}, S.actionCard, { borderColor: "#f59e0b" }) },
         e("div", { style: S.actionIcon }, "🚪"),
         e("div", { style: assign({}, S.actionTime, { color: "#f59e0b" }) }, "23:00 — 最終アクション"),
-        e("h2", { style: S.actionTitle }, "スマホとタブレットをリビングに置け"),
+        e("h2", { style: S.actionTitle }, "スマホとタブレットを寝室の外に置け"),
         intentionRecall(),
         e("p", { style: S.actionBody }, "寝室に画面を1台でも持ち込んだ時点で負け。\nスマホだけ追放してもタブレットが残れば同じこと。\n目覚ましはスマートウォッチで十分。"),
         e("div", { style: S.actionChecklist },
           e("div", { style: S.actionCheckItem }, "1. おやすみモードをONにする"),
-          e("div", { style: S.actionCheckItem }, "2. スマホをリビングの充電器に置く"),
-          e("div", { style: S.actionCheckItem }, "3. タブレットもリビングに置く"),
+          e("div", { style: S.actionCheckItem }, "2. スマホを寝室の外に置く"),
+          e("div", { style: S.actionCheckItem }, "3. タブレットも寝室の外に置く"),
           e("div", { style: S.actionCheckItem }, "4. 寝室に入る → 消灯")
         ),
-        e("div", { style: S.placeBlock },
-          e("div", { style: S.placeLabel }, "スマホは今どこにある？"),
-          e("input", {
-            style: S.placeInput,
-            value: phonePlace,
-            placeholder: "例）リビングの充電器の上",
-            onChange: function(ev) { setPhonePlace(ev.target.value); }
-          })
-        ),
-        e("div", { style: S.placeBlock },
-          e("div", { style: S.placeLabel }, "タブレットは今どこにある？"),
-          e("input", {
-            style: S.placeInput,
-            value: tabletPlace,
-            placeholder: "例）リビングの棚",
-            onChange: function(ev) { setTabletPlace(ev.target.value); }
-          })
-        ),
+        placeRow("スマホは今どこにある？", phonePlace, setPhonePlace),
+        placeRow("タブレットは今どこにある？", tabletPlace, setTabletPlace),
         e("button", {
-          style: assign({}, S.actionConfirmBtn,
+          style: assign({}, S.actionConfirmBtn, { marginTop: 8 },
             canPlace ? { backgroundColor: "#f59e0b", color: "#000" } : S.commitBtnDisabled),
           disabled: !canPlace,
           onClick: handlePhoneOut
-        }, canPlace ? "2台とも置いた。おやすみ。" : "2台の置き場所を書くと完了できます")
+        }, canPlace ? "2台とも置いた。おやすみ。" : "2台の置き場所を選ぶと完了できます")
       )
     );
   }
@@ -1369,7 +1321,7 @@ function SleepCoach() {
         e("div", { style: assign({}, S.actionChecklist, { marginTop: 24 }) },
           e("div", { style: assign({}, S.actionCheckItem, S.actionCheckDone) }, "✓ チェックイン完了"),
           e("div", { style: assign({}, S.actionCheckItem, S.actionCheckDone) }, "✓ YouTube・SNS終了＋照明を落とした"),
-          e("div", { style: assign({}, S.actionCheckItem, S.actionCheckDone) }, "✓ スマホ・タブレットをリビングに配置")
+          e("div", { style: assign({}, S.actionCheckItem, S.actionCheckDone) }, "✓ スマホ・タブレットを寝室の外に配置")
         ),
         data.streak > 0 ? e("div", { style: assign({}, S.streakBanner, { marginTop: 20 }) }, "🔥 連続達成: " + data.streak + "日") : null,
         e("button", { style: S.resetBtn, onClick: handleReset }, "リセット（テスト用）")
@@ -1386,7 +1338,7 @@ function SleepCoach() {
       nextAction = "💡 YouTubeを閉じ、照明を落とす";
       nextTime = new Date(); nextTime.setHours(20, 30, 0, 0);
     } else if (!rec.phoneOut) {
-      nextAction = "🚪 スマホ・タブレットをリビングに置く";
+      nextAction = "🚪 スマホ・タブレットを寝室の外に置く";
       nextTime = new Date(); nextTime.setHours(23, 0, 0, 0);
     }
 
