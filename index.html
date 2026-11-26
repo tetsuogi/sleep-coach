@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="睡眠コーチ">
-  <meta name="theme-color" content="#0a0a0a">
+  <meta name="theme-color" content="#0b1020">
   <meta name="robots" content="noindex, nofollow, noarchive">
   <title>睡眠コーチ</title>
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
@@ -14,7 +14,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png?v=3">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; background-color: #0a0a0a; }
+    html, body { height: 100%; background-color: #0b1020; }
     #root { min-height: 100%; }
     /* チェックした直後のリアクション */
     @keyframes toastUp {
@@ -399,14 +399,14 @@ function flushQueue() {
    ============================================================ */
 var S = {
   container: {
-    minHeight: "100vh", backgroundColor: "#0a0a0a", color: "#e5e5e5",
+    minHeight: "100vh", backgroundColor: "#0b1020", color: "#e5e5e5",
     fontFamily: '-apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif',
     padding: "24px 16px 40px", display: "flex", flexDirection: "column", alignItems: "center"
   },
-  card: { width: "100%", maxWidth: 400, backgroundColor: "#111", border: "1px solid #1a1a1a", borderRadius: 12, padding: "22px 20px", marginBottom: 16 },
+  card: { width: "100%", maxWidth: 400, backgroundColor: "#121a30", border: "1px solid #1c2640", borderRadius: 12, padding: "22px 20px", marginBottom: 16 },
   cardLabel: { fontSize: 12, color: "#777", fontWeight: 700, letterSpacing: "0.08em", marginBottom: 12 },
   question: { fontSize: 18, fontWeight: 700, color: "#f5f5f5", marginBottom: 14 },
-  choiceBtn: { width: "100%", padding: "14px 16px", backgroundColor: "#161616", color: "#d4d4d4", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 16, fontWeight: 600, cursor: "pointer", marginBottom: 8, textAlign: "left" },
+  choiceBtn: { width: "100%", padding: "14px 16px", backgroundColor: "#18223a", color: "#d4d4d4", border: "1px solid #2a3654", borderRadius: 10, fontSize: 16, fontWeight: 600, cursor: "pointer", marginBottom: 8, textAlign: "left" },
   choiceBtnWon: { backgroundColor: "#0f2a1a", color: "#22c55e", border: "1px solid #166534" },
   noticeCard: { borderColor: "#f59e0b" },
   noticeText: { fontSize: 15, color: "#f5f5f5", lineHeight: 1.7, marginBottom: 14 },
@@ -419,17 +419,17 @@ var S = {
   sleepNote: { fontSize: 13, color: "#777", marginBottom: 16 },
   // 朝の「昨夜の仕上げ」のコンパクトなチップ
   chipRow: { display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 18 },
-  chip: { padding: "7px 10px", backgroundColor: "#161616", color: "#999", border: "1px solid #2a2a2a", borderRadius: 999, fontSize: 13, cursor: "pointer" },
+  chip: { padding: "7px 10px", backgroundColor: "#18223a", color: "#999", border: "1px solid #2a3654", borderRadius: 999, fontSize: 13, cursor: "pointer" },
   chipOn: { backgroundColor: "#0f2a1a", color: "#22c55e", border: "1px solid #166534" },
   // 結果・進み具合
   resultText: { fontSize: 17, fontWeight: 700, color: "#f5f5f5", lineHeight: 1.5 },
-  barOuter: { width: "100%", height: 8, backgroundColor: "#222", borderRadius: 4, overflow: "hidden", marginBottom: 6 },
+  barOuter: { width: "100%", height: 8, backgroundColor: "#222c46", borderRadius: 4, overflow: "hidden", marginBottom: 6 },
   barInner: { height: "100%", backgroundColor: "#f59e0b", borderRadius: 4 },
   // チェックリスト
   groupLabel: { fontSize: 12, color: "#777", fontWeight: 700, letterSpacing: "0.08em", margin: "16px 0 6px" },
-  itemRow: { display: "block", width: "100%", textAlign: "left", backgroundColor: "transparent", border: "none", borderTop: "1px solid #1a1a1a", padding: "10px 0", cursor: "pointer", color: "#d4d4d4", fontFamily: "inherit" },
+  itemRow: { display: "block", width: "100%", textAlign: "left", backgroundColor: "transparent", border: "none", borderTop: "1px solid #1c2640", padding: "10px 0", cursor: "pointer", color: "#d4d4d4", fontFamily: "inherit" },
   itemTop: { display: "flex", alignItems: "center", gap: 10 },
-  itemCheck: { width: 22, height: 22, borderRadius: "50%", border: "2px solid #444", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: "#000" },
+  itemCheck: { width: 22, height: 22, borderRadius: "50%", border: "2px solid #3d4b6e", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: "#000" },
   itemCheckOn: { backgroundColor: "#22c55e", border: "2px solid #22c55e" },
   itemLabel: { flex: 1, fontSize: 15, lineHeight: 1.4 },
   itemDeadline: { fontSize: 12, color: "#888", marginLeft: 6, fontVariantNumeric: "tabular-nums" },
@@ -440,25 +440,25 @@ var S = {
   evidenceBadge: { fontSize: 11, fontWeight: 800, borderRadius: 4, padding: "0 5px", border: "1px solid", flexShrink: 0, height: 18, lineHeight: "16px" },
   weekPoints: { fontSize: 11, color: "#777", fontVariantNumeric: "tabular-nums" },
   // 画面上部に固定する今夜のゲージ（下の方の項目をタップしても見えるように）
-  stickyBar: { position: "sticky", top: 0, zIndex: 10, width: "100%", maxWidth: 400, backgroundColor: "rgba(10,10,10,0.96)", padding: "10px 4px 10px", marginBottom: 8, borderBottom: "1px solid #1a1a1a" },
+  stickyBar: { position: "sticky", top: 0, zIndex: 10, width: "100%", maxWidth: 400, backgroundColor: "rgba(11,16,32,0.96)", padding: "10px 4px 10px", marginBottom: 8, borderBottom: "1px solid #1c2640" },
   stickyTop: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 },
   stickyPts: { fontSize: 18, fontWeight: 800, color: "#f5f5f5", fontVariantNumeric: "tabular-nums" },
   stickyPillar: { fontSize: 12, color: "#999" },
   // 未完了 / 完了のタブ
   tabRow: { display: "flex", gap: 6, marginBottom: 4 },
-  tab: { flex: 1, padding: "10px 0", backgroundColor: "#161616", color: "#888", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
-  tabOn: { backgroundColor: "#262626", color: "#f5f5f5", border: "1px solid #555" },
+  tab: { flex: 1, padding: "10px 0", backgroundColor: "#18223a", color: "#888", border: "1px solid #2a3654", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
+  tabOn: { backgroundColor: "#26314d", color: "#f5f5f5", border: "1px solid #4a5a80" },
   emptyText: { fontSize: 14, color: "#777", padding: "18px 0 6px", textAlign: "center", lineHeight: 1.6 },
   // エアコンの設定
   acSummary: { fontSize: 17, fontWeight: 700, color: "#f5f5f5", lineHeight: 1.5, marginBottom: 6 },
   acHint: { fontSize: 13, color: "#999", lineHeight: 1.6, marginBottom: 10 },
-  linkBtn: { background: "none", border: "1px solid #2a2a2a", borderRadius: 8, color: "#bbb", fontSize: 13, padding: "7px 12px", cursor: "pointer", fontFamily: "inherit" },
+  linkBtn: { background: "none", border: "1px solid #2a3654", borderRadius: 8, color: "#bbb", fontSize: 13, padding: "7px 12px", cursor: "pointer", fontFamily: "inherit" },
   formLabel: { fontSize: 12, color: "#777", fontWeight: 700, margin: "14px 0 6px" },
   stepper: { display: "flex", alignItems: "center", gap: 10 },
-  stepBtn: { width: 48, height: 44, backgroundColor: "#161616", color: "#f5f5f5", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 22, fontWeight: 700, cursor: "pointer" },
+  stepBtn: { width: 48, height: 44, backgroundColor: "#18223a", color: "#f5f5f5", border: "1px solid #2a3654", borderRadius: 10, fontSize: 22, fontWeight: 700, cursor: "pointer" },
   stepValue: { flex: 1, textAlign: "center", fontSize: 22, fontWeight: 800, color: "#f5f5f5", fontVariantNumeric: "tabular-nums" },
   // 今夜のボーナス
-  bonusCard: { width: "100%", maxWidth: 400, borderRadius: 12, padding: "16px 18px", marginBottom: 16, border: "2px solid #f59e0b", background: "linear-gradient(135deg, #2a1d05, #111)", animation: "bonusGlow 2.4s ease-in-out infinite" },
+  bonusCard: { width: "100%", maxWidth: 400, borderRadius: 12, padding: "16px 18px", marginBottom: 16, border: "2px solid #f59e0b", background: "linear-gradient(135deg, #2a1d05, #121a30)", animation: "bonusGlow 2.4s ease-in-out infinite" },
   bonusTitle: { fontSize: 12, color: "#f59e0b", fontWeight: 800, letterSpacing: "0.1em", marginBottom: 6 },
   bonusName: { fontSize: 18, color: "#fff", fontWeight: 800, lineHeight: 1.4 },
   bonusPts: { fontSize: 14, color: "#f59e0b", fontWeight: 700, marginTop: 4 },
@@ -466,7 +466,7 @@ var S = {
   bonusBadge: { fontSize: 11, fontWeight: 800, color: "#000", backgroundColor: "#f59e0b", borderRadius: 4, padding: "1px 6px", marginLeft: 6 },
   // タップ直後に浮かぶ表示
   toast: { position: "fixed", left: "50%", bottom: 28, zIndex: 20, padding: "12px 20px", borderRadius: 999, backgroundColor: "#22c55e", color: "#00140a", fontSize: 17, fontWeight: 800, whiteSpace: "nowrap", boxShadow: "0 6px 24px rgba(0,0,0,0.5)", animation: "toastUp 1.6s ease-out forwards", pointerEvents: "none" },
-  toastMinus: { backgroundColor: "#333", color: "#ddd" },
+  toastMinus: { backgroundColor: "#2a3654", color: "#ddd" },
   toastGoal: { backgroundColor: "#f59e0b", color: "#000", fontSize: 19 },
   legend: { width: "100%", maxWidth: 400, fontSize: 12, color: "#666", lineHeight: 1.7, padding: "0 4px" },
   weekRow: { display: "flex", gap: 6, justifyContent: "space-between", marginBottom: 14 },
@@ -797,9 +797,9 @@ function SleepCoach() {
     if (n && n.late === 0) { bg = "#22c55e"; label = "✓"; }
     else if (isRecorded(n)) { bg = n.late <= 30 ? "#f59e0b" : "#ef4444"; label = "✗"; }
     else if (key < data.startDate) { bg = "transparent"; label = ""; }  // 使い始める前の夜（記録の対象外）
-    else if (key < lastNight) { bg = "#333"; label = "−"; } // 記録しなかった夜
+    else if (key < lastNight) { bg = "#2a3654"; label = "−"; } // 記録しなかった夜
     else { bg = "transparent"; label = ""; }                // 記録待ちの昨夜と、まだ来ていない夜
-    var dotBorder = bg === "transparent" && key >= data.startDate ? { border: "1px solid #2a2a2a" } : {};
+    var dotBorder = bg === "transparent" && key >= data.startDate ? { border: "1px solid #2a3654" } : {};
     var dayPts = nightPoints(n, key);
     weekPts += dayPts;
     weekDots.push(e("div", { key: key, style: S.weekDay },
