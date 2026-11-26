@@ -13,6 +13,21 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; background-color: #0a0a0a; }
     #root { min-height: 100%; }
+    /* チェックした直後のリアクション */
+    @keyframes toastUp {
+      0%   { opacity: 0; transform: translate(-50%, 16px) scale(0.9); }
+      15%  { opacity: 1; transform: translate(-50%, 0) scale(1.05); }
+      25%  { transform: translate(-50%, 0) scale(1); }
+      80%  { opacity: 1; transform: translate(-50%, 0); }
+      100% { opacity: 0; transform: translate(-50%, -12px); }
+    }
+    @keyframes checkPop {
+      0% { transform: scale(0.6); } 60% { transform: scale(1.25); } 100% { transform: scale(1); }
+    }
+    @keyframes bonusGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.0); }
+      50%      { box-shadow: 0 0 14px 2px rgba(245, 158, 11, 0.35); }
+    }
   </style>
 </head>
 <body>
@@ -47,7 +62,7 @@ var FINAL_TARGET = -30;     // 最終目標 23:30（6:30起床で7時間）
 var STEP = 15;              // 1回の前進幅
 var NEED_PER_WEEK = 5;      // 前進に必要な、1週間の達成日数
 var ROUTINE_LEAD = 45;      // 寝る前のルーティーンは目標の45分前に始める
-var WAKE_TIME = 6 * 60 + 30; // 起床 6:30（表示用）
+var WAKE_TIME = 6 * 60 + 45; // 起床 6:45（表示用。資格勉強が本格化したら早める予定）
 
 // 朝の記録の選択肢。late は目標からの遅れ（分）。0 だけが達成
 var LATE_OPTIONS = [0, 15, 30, 60, 99];
@@ -371,11 +386,8 @@ var S = {
   chipOn: { backgroundColor: "#0f2a1a", color: "#22c55e", border: "1px solid #166534" },
   // 結果・進み具合
   resultText: { fontSize: 17, fontWeight: 700, color: "#f5f5f5", lineHeight: 1.5 },
-  bonusLine: { fontSize: 14, color: "#f59e0b", fontWeight: 700, marginBottom: 12 },
   barOuter: { width: "100%", height: 8, backgroundColor: "#222", borderRadius: 4, overflow: "hidden", marginBottom: 6 },
   barInner: { height: "100%", backgroundColor: "#f59e0b", borderRadius: 4 },
-  barText: { fontSize: 14, color: "#d4d4d4", marginBottom: 4, fontVariantNumeric: "tabular-nums" },
-  pillarText: { fontSize: 13, color: "#999" },
   // チェックリスト
   groupLabel: { fontSize: 12, color: "#777", fontWeight: 700, letterSpacing: "0.08em", margin: "16px 0 6px" },
   itemRow: { display: "block", width: "100%", textAlign: "left", backgroundColor: "transparent", border: "none", borderTop: "1px solid #1a1a1a", padding: "10px 0", cursor: "pointer", color: "#d4d4d4", fontFamily: "inherit" },
@@ -390,6 +402,27 @@ var S = {
   itemBottom: { display: "flex", gap: 8, marginTop: 4, paddingLeft: 32, fontSize: 12, color: "#666", lineHeight: 1.5 },
   evidenceBadge: { fontSize: 11, fontWeight: 800, borderRadius: 4, padding: "0 5px", border: "1px solid", flexShrink: 0, height: 18, lineHeight: "16px" },
   weekPoints: { fontSize: 11, color: "#777", fontVariantNumeric: "tabular-nums" },
+  // 画面上部に固定する今夜のゲージ（下の方の項目をタップしても見えるように）
+  stickyBar: { position: "sticky", top: 0, zIndex: 10, width: "100%", maxWidth: 400, backgroundColor: "rgba(10,10,10,0.96)", padding: "10px 4px 10px", marginBottom: 8, borderBottom: "1px solid #1a1a1a" },
+  stickyTop: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 },
+  stickyPts: { fontSize: 18, fontWeight: 800, color: "#f5f5f5", fontVariantNumeric: "tabular-nums" },
+  stickyPillar: { fontSize: 12, color: "#999" },
+  // 未完了 / 完了のタブ
+  tabRow: { display: "flex", gap: 6, marginBottom: 4 },
+  tab: { flex: 1, padding: "10px 0", backgroundColor: "#161616", color: "#888", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
+  tabOn: { backgroundColor: "#262626", color: "#f5f5f5", border: "1px solid #555" },
+  emptyText: { fontSize: 14, color: "#777", padding: "18px 0 6px", textAlign: "center", lineHeight: 1.6 },
+  // 今夜のボーナス
+  bonusCard: { width: "100%", maxWidth: 400, borderRadius: 12, padding: "16px 18px", marginBottom: 16, border: "2px solid #f59e0b", background: "linear-gradient(135deg, #2a1d05, #111)", animation: "bonusGlow 2.4s ease-in-out infinite" },
+  bonusTitle: { fontSize: 12, color: "#f59e0b", fontWeight: 800, letterSpacing: "0.1em", marginBottom: 6 },
+  bonusName: { fontSize: 18, color: "#fff", fontWeight: 800, lineHeight: 1.4 },
+  bonusPts: { fontSize: 14, color: "#f59e0b", fontWeight: 700, marginTop: 4 },
+  bonusRow: { backgroundColor: "#1f1606", border: "1px solid #f59e0b", borderRadius: 10, padding: "10px 10px", marginBottom: 6 },
+  bonusBadge: { fontSize: 11, fontWeight: 800, color: "#000", backgroundColor: "#f59e0b", borderRadius: 4, padding: "1px 6px", marginLeft: 6 },
+  // タップ直後に浮かぶ表示
+  toast: { position: "fixed", left: "50%", bottom: 28, zIndex: 20, padding: "12px 20px", borderRadius: 999, backgroundColor: "#22c55e", color: "#00140a", fontSize: 17, fontWeight: 800, whiteSpace: "nowrap", boxShadow: "0 6px 24px rgba(0,0,0,0.5)", animation: "toastUp 1.6s ease-out forwards", pointerEvents: "none" },
+  toastMinus: { backgroundColor: "#333", color: "#ddd" },
+  toastGoal: { backgroundColor: "#f59e0b", color: "#000", fontSize: 19 },
   legend: { width: "100%", maxWidth: 400, fontSize: 12, color: "#666", lineHeight: 1.7, padding: "0 4px" },
   weekRow: { display: "flex", gap: 6, justifyContent: "space-between", marginBottom: 14 },
   weekDay: { display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 },
@@ -405,6 +438,13 @@ var S = {
 function SleepCoach() {
   var dataState = useState(null);
   var data = dataState[0], setData = dataState[1];
+
+  var tabState = useState("todo");   // チェックリストのタブ: "todo"（未完了）/ "done"（完了）
+  var tab = tabState[0], setTab = tabState[1];
+
+  // タップ直後に浮かぶ表示。n は毎回変えて、同じ文言でもアニメーションをやり直させる
+  var toastState = useState(null);   // { text, kind: "plus" | "minus" | "goal", n }
+  var toast = toastState[0], setToast = toastState[1];
 
   function save(d) {
     setData(d);
@@ -456,6 +496,18 @@ function SleepCoach() {
     var nights = assign({}, data.nights);
     nights[key] = assign({}, night, { checks: checks });
     save(assign({}, data, { nights: nights }));
+    return { before: nightPoints(night, key), after: nightPoints(nights[key], key), on: !!checks[id] };
+  }
+
+  // 今夜のチェック。付け外しのたびに、点数の増減を画面下に浮かべる
+  function toggleTonight(id) {
+    var r = toggleCheck(today, id);
+    var diff = r.after - r.before;
+    var reachedGoal = r.before < TARGET_POINTS && r.after >= TARGET_POINTS;
+    var text = reachedGoal
+      ? "🎉 目標点に到達！ 今夜 " + r.after + "pt"
+      : (diff > 0 ? "+" : "−") + Math.abs(diff) + "pt　今夜 " + r.after + " / " + TARGET_POINTS;
+    setToast({ text: text, kind: reachedGoal ? "goal" : (r.on ? "plus" : "minus"), n: (toast ? toast.n : 0) + 1 });
   }
 
   function lateLabel(t, late) {
@@ -539,46 +591,97 @@ function SleepCoach() {
         e("div", { style: S.clockBig }, fmtClock(target))
       )
     ),
-    e("div", { style: S.sleepNote }, fmtClock(WAKE_TIME) + " 起床なら、睡眠は " + fmtDuration(WAKE_TIME - target)),
-    e("div", { style: S.bonusLine }, "今夜のボーナス：" + bonusItem.label + "（2倍）"),
-    e("div", { style: S.barText }, "今夜 " + tonightPts + " / " + TARGET_POINTS + "pt"),
-    e("div", { style: S.barOuter },
-      e("div", { style: assign({}, S.barInner, { width: Math.min(100, tonightPts / TARGET_POINTS * 100) + "%" }) })
-    ),
-    e("div", { style: S.pillarText },
-      "柱：Macの作業 " + (tonightChecks.mac ? "✓" : "未") + " ／ 消灯の目標（翌朝の記録で付く）")
+    e("div", { style: assign({}, S.sleepNote, { marginBottom: 0 }) }, fmtClock(WAKE_TIME) + " 起床なら、睡眠は " + fmtDuration(WAKE_TIME - target))
   );
 
-  // --- チェックリスト（グループ順） ---
-  var checklistCard = e("div", { style: S.card },
-    e("div", { style: S.cardLabel }, "今夜のチェックリスト"),
-    ITEM_GROUPS.map(function(group) {
+  // --- 画面上部に固定する今夜のゲージ ---
+  var stickyBar = e("div", { style: S.stickyBar },
+    e("div", { style: S.stickyTop },
+      e("div", { style: assign({}, S.stickyPts, tonightPts >= TARGET_POINTS ? { color: "#f59e0b" } : {}) },
+        "今夜 " + tonightPts + " / " + TARGET_POINTS + "pt"),
+      e("div", { style: S.stickyPillar }, "柱：Mac " + (tonightChecks.mac ? "✓" : "未") + " ／ 消灯は翌朝")
+    ),
+    e("div", { style: assign({}, S.barOuter, { marginBottom: 0 }) },
+      e("div", { style: assign({}, S.barInner, { width: Math.min(100, tonightPts / TARGET_POINTS * 100) + "%", transition: "width 0.4s ease" }) })
+    )
+  );
+
+  // --- 今夜のボーナス（目立たせる） ---
+  var bonusDone = !!tonightChecks[bonusItem.id];
+  var bonusCard = e("div", { style: assign({}, S.bonusCard, bonusDone ? { animation: "none", opacity: 0.75 } : {}) },
+    e("div", { style: S.bonusTitle }, "★ 今夜のボーナス ★"),
+    e("div", { style: S.bonusName }, bonusItem.label),
+    e("div", { style: S.bonusPts }, bonusDone
+      ? "✓ 獲得済み（+" + itemPoints(bonusItem) * 2 + "pt）"
+      : "ポイント2倍：+" + itemPoints(bonusItem) + " → +" + itemPoints(bonusItem) * 2 + "pt")
+  );
+
+  // --- チェックリスト（未完了 / 完了のタブ。未完了タブではボーナス項目を先頭に出す） ---
+  function itemRow(it) {
+    var on = !!tonightChecks[it.id];
+    var isBonus = it.id === bonusItem.id;
+    var pts = itemPoints(it) * (isBonus ? 2 : 1);
+    var ev = EVIDENCE[it.evidence];
+    return e("button", {
+      key: it.id,
+      style: assign({}, S.itemRow, isBonus && !on ? S.bonusRow : {}),
+      onClick: function() { toggleTonight(it.id); }
+    },
+      e("div", { style: S.itemTop },
+        e("div", { style: assign({}, S.itemCheck, on ? assign({}, S.itemCheckOn, { animation: "checkPop 0.3s ease-out" }) : {}) }, on ? "✓" : ""),
+        e("div", { style: S.itemLabel },
+          it.label,
+          it.deadline !== null ? e("span", { style: S.itemDeadline }, "〜" + fmtClock(target + it.deadline)) : null,
+          it.pillar ? e("span", { style: S.pillarBadge }, "柱") : null,
+          isBonus ? e("span", { style: S.bonusBadge }, "★ボーナス") : null
+        ),
+        e("div", { style: assign({}, S.itemPoints, isBonus ? S.itemPointsBonus : {}) }, "+" + pts + (isBonus ? " ×2" : ""))
+      ),
+      e("div", { style: S.itemBottom },
+        e("span", { style: assign({}, S.evidenceBadge, { color: ev.color, borderColor: ev.color }) }, ev.label),
+        e("span", null, it.why)
+      )
+    );
+  }
+
+  var doneCount = ITEMS.filter(function(it) { return tonightChecks[it.id]; }).length;
+  var tabItems = ITEMS.filter(function(it) { return tab === "done" ? tonightChecks[it.id] : !tonightChecks[it.id]; });
+  var listBody;
+  if (!tabItems.length) {
+    listBody = e("div", { style: S.emptyText }, tab === "done"
+      ? "まだ完了した項目はありません。"
+      : "全部完了！ 今夜できることはやり切りました。");
+  } else {
+    var bonusFirst = tab === "todo" && !tonightChecks[bonusItem.id]
+      ? e("div", { key: "bonus" }, e("div", { style: assign({}, S.groupLabel, { color: "#f59e0b" }) }, "★ 今夜のボーナス"), itemRow(bonusItem))
+      : null;
+    listBody = [bonusFirst].concat(ITEM_GROUPS.map(function(group) {
+      var rows = tabItems.filter(function(it) {
+        return it.group === group && !(bonusFirst && it.id === bonusItem.id);
+      });
+      if (!rows.length) return null;
       return e("div", { key: group },
         e("div", { style: S.groupLabel }, group),
-        ITEMS.filter(function(it) { return it.group === group; }).map(function(it) {
-          var on = !!tonightChecks[it.id];
-          var isBonus = it.id === bonusItem.id;
-          var pts = itemPoints(it) * (isBonus ? 2 : 1);
-          var ev = EVIDENCE[it.evidence];
-          return e("button", { key: it.id, style: S.itemRow, onClick: function() { toggleCheck(today, it.id); } },
-            e("div", { style: S.itemTop },
-              e("div", { style: assign({}, S.itemCheck, on ? S.itemCheckOn : {}) }, on ? "✓" : ""),
-              e("div", { style: S.itemLabel },
-                it.label,
-                it.deadline !== null ? e("span", { style: S.itemDeadline }, "〜" + fmtClock(target + it.deadline)) : null,
-                it.pillar ? e("span", { style: S.pillarBadge }, "柱") : null
-              ),
-              e("div", { style: assign({}, S.itemPoints, isBonus ? S.itemPointsBonus : {}) }, "+" + pts + (isBonus ? " ×2" : ""))
-            ),
-            e("div", { style: S.itemBottom },
-              e("span", { style: assign({}, S.evidenceBadge, { color: ev.color, borderColor: ev.color }) }, ev.label),
-              e("span", null, it.why)
-            )
-          );
-        })
+        rows.map(itemRow)
       );
-    })
+    }));
+  }
+
+  var checklistCard = e("div", { style: S.card },
+    e("div", { style: S.cardLabel }, "今夜のチェックリスト"),
+    e("div", { style: S.tabRow },
+      e("button", { style: assign({}, S.tab, tab === "todo" ? S.tabOn : {}), onClick: function() { setTab("todo"); } },
+        "未完了 " + (ITEMS.length - doneCount)),
+      e("button", { style: assign({}, S.tab, tab === "done" ? S.tabOn : {}), onClick: function() { setTab("done"); } },
+        "完了 " + doneCount)
+    ),
+    listBody
   );
+
+  var toastEl = toast ? e("div", {
+    key: "toast-" + toast.n,
+    style: assign({}, S.toast, toast.kind === "minus" ? S.toastMinus : {}, toast.kind === "goal" ? S.toastGoal : {})
+  }, toast.text) : null;
 
   // --- 今週 ---
   var won = wonCount(data, thisWeek);
@@ -638,7 +741,7 @@ function SleepCoach() {
     "クリア = 目標 " + TARGET_POINTS + "pt 以上 ＋ 柱2本（消灯の目標・Macの作業）"
   );
 
-  return e("div", { style: S.container }, recordCard, resultCard, noticeCard, tonightCard, checklistCard, weekCard, legend);
+  return e("div", { style: S.container }, stickyBar, recordCard, resultCard, noticeCard, tonightCard, bonusCard, checklistCard, weekCard, legend, toastEl);
 }
 
 var root = ReactDOM.createRoot(document.getElementById("root"));
