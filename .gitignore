@@ -7,3 +7,5 @@ node_modules/
 .env.*
 .claude/settings.local.json
 *.log
+# アイコンの元写真（部屋が写っているので公開リポジトリに上げない。切り抜いたアイコンだけを公開する）
+sleeping_mimi_.jpeg
