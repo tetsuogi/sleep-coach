@@ -131,6 +131,7 @@ var ITEMS = [
 var ITEM_GROUPS = ["日中〜夕方", "夜の流れ", "ルーティーン", "寝室"];
 
 // エアコン（ダイキン）の設定。推奨温度は機種・断熱・寝具で変わるので、自分の設定を季節ごとに登録する。
+// season: "summer" / "off"（春秋。エアコンを使わない）/ "winter"
 // mode: "temp"（温度設定）/ "ai"（AI自動。基準から0.5℃刻みで上下）
 // timer: "none" / "on" / "off"、timerHours は0.5時間刻み
 var AIRCON_DEFAULT = {
@@ -222,6 +223,7 @@ function fmtSigned(n) {
 
 // 「冬・AI自動 +0.5℃・オンタイマー 5.5時間」のような要約
 function airconSummary(ac) {
+  if (ac.season === "off") return "春秋・エアコンなし（寝具と換気で調整）";
   var s = ac[ac.season];
   var summer = ac.season === "summer";
   var parts = [summer ? "夏" : "冬"];
@@ -666,7 +668,8 @@ function SleepCoach() {
 
   // --- エアコンの設定（季節ごと。数値は − / ＋ で0.5刻み） ---
   var aircon = data.aircon || AIRCON_DEFAULT;
-  var acSeason = aircon[aircon.season];
+  var acOff = aircon.season === "off";
+  var acSeason = acOff ? null : aircon[aircon.season];
 
   function saveAircon(ac) { save(assign({}, data, { aircon: ac })); }
   function updateSeason(patch) {
@@ -690,7 +693,7 @@ function SleepCoach() {
 
   // オンタイマーのとき：起床30分前に動かすには、消灯の目標時刻に何時間でセットすればいいか
   var onTimerHint = null;
-  if (acSeason.timer === "on") {
+  if (!acOff && acSeason.timer === "on") {
     var onAt = WAKE_TIME - 30;
     var hours = Math.round(((onAt - target + 1440) % 1440) / 30) / 2;
     onTimerHint = "起床30分前（" + fmtClock(onAt) + "）に動かすなら、消灯の目標 " + fmtClock(target) + " にセットして約" + hours + "時間";
@@ -703,7 +706,8 @@ function SleepCoach() {
     e("button", { style: S.linkBtn, onClick: function() { setAcEdit(!acEdit); } }, acEdit ? "閉じる" : "設定を変える"),
     acEdit ? e("div", null,
       e("div", { style: S.formLabel }, "今の季節（季節ごとに設定を保存）"),
-      segment([["summer", "夏"], ["winter", "冬"]], aircon.season, function(v) { saveAircon(assign({}, aircon, { season: v })); }),
+      segment([["summer", "夏"], ["off", "春秋（使わない）"], ["winter", "冬"]], aircon.season, function(v) { saveAircon(assign({}, aircon, { season: v })); }),
+      acOff ? null : e("div", null,
       e("div", { style: S.formLabel }, "運転"),
       segment([["temp", "温度設定"], ["ai", "AI自動"]], acSeason.mode, function(v) { updateSeason({ mode: v }); }),
       acSeason.mode === "temp"
@@ -714,6 +718,7 @@ function SleepCoach() {
       acSeason.timer !== "none"
         ? e("div", null, e("div", { style: S.formLabel }, "時間"), stepper(acSeason.timerHours + "時間", "timerHours", AIRCON_RANGE.timerHours))
         : null
+      )
     ) : null
   );
 
