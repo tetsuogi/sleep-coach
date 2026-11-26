@@ -127,6 +127,20 @@ var ITEMS = [
 ];
 var ITEM_GROUPS = ["日中〜夕方", "夜の流れ", "ルーティーン", "寝室"];
 
+// エアコン（ダイキン）の設定。推奨温度は機種・断熱・寝具で変わるので、自分の設定を季節ごとに登録する。
+// mode: "temp"（温度設定）/ "ai"（AI自動。基準から0.5℃刻みで上下）
+// timer: "none" / "on" / "off"、timerHours は0.5時間刻み
+var AIRCON_DEFAULT = {
+  season: (function() { var m = new Date().getMonth() + 1; return m >= 5 && m <= 10 ? "summer" : "winter"; })(),
+  summer: { mode: "ai", temp: 26, aiOffset: 0, timer: "none", timerHours: 2 },
+  winter: { mode: "ai", temp: 20, aiOffset: 0, timer: "none", timerHours: 6 }
+};
+var AIRCON_RANGE = {
+  temp: [16, 32],
+  aiOffset: [-3, 3],
+  timerHours: [0.5, 12]
+};
+
 var STORAGE_KEY = "sleep-coach-v4";   // v3.5 までの "sleep-coach-data" とは混ぜない
 var QUEUE_KEY = "sleep-coach-queue";
 
@@ -191,6 +205,26 @@ function fmtClock(mins) {
 function fmtDuration(mins) {
   var h = Math.floor(mins / 60), m = mins % 60;
   return h + "時間" + (m ? m + "分" : "");
+}
+
+// 0.5刻みに丸めて範囲内に収める
+function clampHalf(v, range) {
+  return Math.min(range[1], Math.max(range[0], Math.round(v * 2) / 2));
+}
+
+// AIの補正値を「+0.5」「−1.0」「±0.0」の形に
+function fmtSigned(n) {
+  return (n > 0 ? "+" : n < 0 ? "−" : "±") + Math.abs(n).toFixed(1);
+}
+
+// 「冬・AI自動 +0.5℃・オンタイマー 5.5時間」のような要約
+function airconSummary(ac) {
+  var s = ac[ac.season];
+  var summer = ac.season === "summer";
+  var parts = [summer ? "夏" : "冬"];
+  parts.push(s.mode === "ai" ? "AI自動 " + fmtSigned(s.aiOffset) + "℃" : (summer ? "冷房 " : "暖房 ") + s.temp.toFixed(1) + "℃");
+  if (s.timer !== "none") parts.push((s.timer === "on" ? "オンタイマー " : "オフタイマー ") + s.timerHours + "時間");
+  return parts.join("・");
 }
 
 function assign() {
@@ -412,6 +446,14 @@ var S = {
   tab: { flex: 1, padding: "10px 0", backgroundColor: "#161616", color: "#888", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" },
   tabOn: { backgroundColor: "#262626", color: "#f5f5f5", border: "1px solid #555" },
   emptyText: { fontSize: 14, color: "#777", padding: "18px 0 6px", textAlign: "center", lineHeight: 1.6 },
+  // エアコンの設定
+  acSummary: { fontSize: 17, fontWeight: 700, color: "#f5f5f5", lineHeight: 1.5, marginBottom: 6 },
+  acHint: { fontSize: 13, color: "#999", lineHeight: 1.6, marginBottom: 10 },
+  linkBtn: { background: "none", border: "1px solid #2a2a2a", borderRadius: 8, color: "#bbb", fontSize: 13, padding: "7px 12px", cursor: "pointer", fontFamily: "inherit" },
+  formLabel: { fontSize: 12, color: "#777", fontWeight: 700, margin: "14px 0 6px" },
+  stepper: { display: "flex", alignItems: "center", gap: 10 },
+  stepBtn: { width: 48, height: 44, backgroundColor: "#161616", color: "#f5f5f5", border: "1px solid #2a2a2a", borderRadius: 10, fontSize: 22, fontWeight: 700, cursor: "pointer" },
+  stepValue: { flex: 1, textAlign: "center", fontSize: 22, fontWeight: 800, color: "#f5f5f5", fontVariantNumeric: "tabular-nums" },
   // 今夜のボーナス
   bonusCard: { width: "100%", maxWidth: 400, borderRadius: 12, padding: "16px 18px", marginBottom: 16, border: "2px solid #f59e0b", background: "linear-gradient(135deg, #2a1d05, #111)", animation: "bonusGlow 2.4s ease-in-out infinite" },
   bonusTitle: { fontSize: 12, color: "#f59e0b", fontWeight: 800, letterSpacing: "0.1em", marginBottom: 6 },
@@ -438,6 +480,9 @@ var S = {
 function SleepCoach() {
   var dataState = useState(null);
   var data = dataState[0], setData = dataState[1];
+
+  var acEditState = useState(false); // エアコンの設定を編集中か
+  var acEdit = acEditState[0], setAcEdit = acEditState[1];
 
   var tabState = useState("todo");   // チェックリストのタブ: "todo"（未完了）/ "done"（完了）
   var tab = tabState[0], setTab = tabState[1];
@@ -616,6 +661,59 @@ function SleepCoach() {
       : "ポイント2倍：+" + itemPoints(bonusItem) + " → +" + itemPoints(bonusItem) * 2 + "pt")
   );
 
+  // --- エアコンの設定（季節ごと。数値は − / ＋ で0.5刻み） ---
+  var aircon = data.aircon || AIRCON_DEFAULT;
+  var acSeason = aircon[aircon.season];
+
+  function saveAircon(ac) { save(assign({}, data, { aircon: ac })); }
+  function updateSeason(patch) {
+    var ac = assign({}, aircon);
+    ac[aircon.season] = assign({}, acSeason, patch);
+    saveAircon(ac);
+  }
+
+  function segment(options, value, onPick) {
+    return e("div", { style: S.tabRow }, options.map(function(o) {
+      return e("button", { key: o[0], style: assign({}, S.tab, value === o[0] ? S.tabOn : {}), onClick: function() { onPick(o[0]); } }, o[1]);
+    }));
+  }
+  function stepper(text, field, range) {
+    return e("div", { style: S.stepper },
+      e("button", { style: S.stepBtn, onClick: function() { var p = {}; p[field] = clampHalf(acSeason[field] - 0.5, range); updateSeason(p); } }, "−"),
+      e("div", { style: S.stepValue }, text),
+      e("button", { style: S.stepBtn, onClick: function() { var p = {}; p[field] = clampHalf(acSeason[field] + 0.5, range); updateSeason(p); } }, "＋")
+    );
+  }
+
+  // オンタイマーのとき：起床30分前に動かすには、消灯の目標時刻に何時間でセットすればいいか
+  var onTimerHint = null;
+  if (acSeason.timer === "on") {
+    var onAt = WAKE_TIME - 30;
+    var hours = Math.round(((onAt - target + 1440) % 1440) / 30) / 2;
+    onTimerHint = "起床30分前（" + fmtClock(onAt) + "）に動かすなら、消灯の目標 " + fmtClock(target) + " にセットして約" + hours + "時間";
+  }
+
+  var airconCard = e("div", { style: S.card },
+    e("div", { style: S.cardLabel }, "エアコンの設定"),
+    e("div", { style: S.acSummary }, airconSummary(aircon)),
+    onTimerHint ? e("div", { style: S.acHint }, onTimerHint) : null,
+    e("button", { style: S.linkBtn, onClick: function() { setAcEdit(!acEdit); } }, acEdit ? "閉じる" : "設定を変える"),
+    acEdit ? e("div", null,
+      e("div", { style: S.formLabel }, "今の季節（季節ごとに設定を保存）"),
+      segment([["summer", "夏"], ["winter", "冬"]], aircon.season, function(v) { saveAircon(assign({}, aircon, { season: v })); }),
+      e("div", { style: S.formLabel }, "運転"),
+      segment([["temp", "温度設定"], ["ai", "AI自動"]], acSeason.mode, function(v) { updateSeason({ mode: v }); }),
+      acSeason.mode === "temp"
+        ? e("div", null, e("div", { style: S.formLabel }, "設定温度"), stepper(acSeason.temp.toFixed(1) + "℃", "temp", AIRCON_RANGE.temp))
+        : e("div", null, e("div", { style: S.formLabel }, "AIの基準から"), stepper(fmtSigned(acSeason.aiOffset) + "℃", "aiOffset", AIRCON_RANGE.aiOffset)),
+      e("div", { style: S.formLabel }, "タイマー"),
+      segment([["none", "なし"], ["on", "オン"], ["off", "オフ"]], acSeason.timer, function(v) { updateSeason({ timer: v }); }),
+      acSeason.timer !== "none"
+        ? e("div", null, e("div", { style: S.formLabel }, "時間"), stepper(acSeason.timerHours + "時間", "timerHours", AIRCON_RANGE.timerHours))
+        : null
+    ) : null
+  );
+
   // --- チェックリスト（未完了 / 完了のタブ。未完了タブではボーナス項目を先頭に出す） ---
   function itemRow(it) {
     var on = !!tonightChecks[it.id];
@@ -640,7 +738,9 @@ function SleepCoach() {
       e("div", { style: S.itemBottom },
         e("span", { style: assign({}, S.evidenceBadge, { color: ev.color, borderColor: ev.color }) }, ev.label),
         e("span", null, it.why)
-      )
+      ),
+      // 寝室の温度の項目には、自分で登録したエアコンの設定を出す
+      it.id === "temp" ? e("div", { style: assign({}, S.itemBottom, { color: "#f59e0b" }) }, "設定：" + airconSummary(aircon)) : null
     );
   }
 
@@ -741,7 +841,7 @@ function SleepCoach() {
     "クリア = 目標 " + TARGET_POINTS + "pt 以上 ＋ 柱2本（消灯の目標・Macの作業）"
   );
 
-  return e("div", { style: S.container }, stickyBar, recordCard, resultCard, noticeCard, tonightCard, bonusCard, checklistCard, weekCard, legend, toastEl);
+  return e("div", { style: S.container }, stickyBar, recordCard, resultCard, noticeCard, tonightCard, bonusCard, checklistCard, airconCard, weekCard, legend, toastEl);
 }
 
 var root = ReactDOM.createRoot(document.getElementById("root"));
