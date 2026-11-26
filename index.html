@@ -28,11 +28,11 @@ var useState = React.useState;
 var useEffect = React.useEffect;
 
 /* ============================================================
-   睡眠コーチ v4（最小版）
-   毎朝「昨夜は何時に寝たか」を1タップで記録するだけ。
-   7日中5日、目標までに寝られた週の翌週は、目標を15分前に進める。
-   夜に意志で勝つ仕組み（クイズ・誓い・置き場の申告など）は v3.5 まで。
-   旧版は git のタグ v3.5 に残してある。
+   睡眠コーチ v5
+   寝る前の「眠りに良い行動」を1タップずつ付けてポイントを積み上げる。
+   ポイント = 手間 × エビデンスの重み。柱2本（消灯の目標・Macの作業終了）＋目標点でクリア。
+   毎朝「昨夜は何時に寝たか」を記録し、7日中5日目標を守れた週の翌週は目標を15分前に進める（v4 から継続）。
+   夜に意志で勝つ仕組み（クイズ・誓い・置き場の申告など）は v3.5 まで。旧版は git のタグ v3.5 に残してある。
    ============================================================ */
 
 /* ============================================================
@@ -52,12 +52,65 @@ var WAKE_TIME = 6 * 60 + 30; // 起床 6:30（表示用）
 // 朝の記録の選択肢。late は目標からの遅れ（分）。0 だけが達成
 var LATE_OPTIONS = [0, 15, 30, 60, 99];
 
-var ROUTINE = [
-  "照明を赤色灯にして、静かな音楽をかける",
-  "紙の本を読む（寝る前専用の本）",
-  "うさぎにおやすみを言う",
-  "瞑想して、消灯"
+// エビデンスのランクと重み（ポイント = 手間 × 重み）
+var EVIDENCE = {
+  A: { weight: 3, label: "A", color: "#22c55e", desc: "メタ分析などで効果が一貫して示されている" },
+  B: { weight: 2, label: "B", color: "#84cc16", desc: "複数の研究で効果あり（規模や一貫性に限界）" },
+  C: { weight: 1, label: "C", color: "#777", desc: "小規模な研究のみ、結果がまちまち、または理論だけ" },
+  P: { weight: 2, label: "個人", color: "#60a5fa", desc: "研究ではなく、夜の流れを整えるための自分のルール" }
+};
+var LIGHTS_OUT_POINTS = 10;   // 消灯の目標を守った（柱。翌朝の記録で付く）
+var TARGET_POINTS = 30;       // 今夜の目標点
+var LEVEL_STEP = 150;         // 累計ポイント150ごとにレベルアップ
+
+// 寝る前の行動リスト。effort: 1=小 2=中 3=大（このユーザーにとっての大変さ）
+// deadline: 消灯の目標からの相対分（-45 なら消灯の45分前まで）。null は時刻なし
+// pillar: true は柱（欠けるとクリアにならない）
+var ITEMS = [
+  { id: "caffeine", group: "日中〜夕方", label: "カフェインをとらない", deadline: -540, evidence: "A", effort: 1,
+    why: "就寝前のカフェインで睡眠は平均45分短くなる（メタ分析）。コーヒーは就寝の約9時間前までが目安" },
+  { id: "dinner", group: "夜の流れ", label: "夕食を終える", deadline: -180, evidence: "C", effort: 2,
+    why: "遅い夕食と睡眠の研究は結果がまちまち。夜の流れ全体を前倒しにする意味が大きい" },
+  { id: "fiber", group: "夜の流れ", label: "夕食で食物繊維をとる（野菜・海藻・豆など）", deadline: null, evidence: "C", effort: 1,
+    why: "食物繊維が多い日ほど深い睡眠が多かった（26人の小規模な研究。1日全体の量で、寝る前の効果ではない）" },
+  { id: "protein", group: "夜の流れ", label: "夕食でタンパク質をとる", deadline: null, evidence: "C", effort: 1,
+    why: "観察研究では良い関連があるが、試験のメタ分析でははっきりした効果は出ていない" },
+  { id: "alcohol", group: "夜の流れ", label: "お酒は夕食で終える", deadline: -180, evidence: "A", effort: 2,
+    why: "少量でもレム睡眠を遅らせ、短くする（27研究のメタ分析）" },
+  { id: "dishes", group: "夜の流れ", label: "食器洗いを終える", deadline: -90, evidence: "P", effort: 2,
+    why: "後回しにした家事が、消灯前に押し寄せるのを防ぐ" },
+  { id: "bath", group: "夜の流れ", label: "入浴を済ませる（40℃前後で10分以上）", deadline: -60, evidence: "B", effort: 2,
+    why: "就寝1〜2時間前の入浴で寝つきが早まる（メタ分析。効果は平均10分ほどと控えめ）" },
+  { id: "mac", group: "夜の流れ", label: "Macの作業を終える（画像生成を指示して閉じる）", deadline: -45, evidence: "P", effort: 3, pillar: true,
+    why: "夜更かしの起点。続きを書き出して閉じれば、頭から手放せる" },
+  { id: "lights", group: "ルーティーン", label: "照明を落とす（赤色灯・間接照明）", deadline: -45, evidence: "B", effort: 1,
+    why: "普通の室内の明るさでも、多くの人でメラトニンが抑えられる" },
+  { id: "todo", group: "ルーティーン", label: "明日やることを書き出す", deadline: null, evidence: "C", effort: 1,
+    why: "寝る前に5分To-Doを書いた人は寝つきが早かった（実験1件）" },
+  { id: "tea", group: "ルーティーン", label: "ハーブティーを飲む（ノンカフェイン）", deadline: null, evidence: "C", effort: 1,
+    why: "カモミールなどの研究は少なく効果は限定的。温かい一杯を儀式にする意味が大きい" },
+  { id: "supplement", group: "ルーティーン", label: "睡眠サプリを飲む（L-テアニンなど）", deadline: null, evidence: "C", effort: 1,
+    why: "L-テアニンは小規模な試験で効果の報告あり。マグネシウムなどは結果がまちまち" },
+  { id: "paperbook", group: "ルーティーン", label: "紙の本を読む", deadline: null, evidence: "B", effort: 1,
+    why: "光る画面で読むと、紙の本よりメラトニンが抑えられ寝つきが遅れた（実験）" },
+  { id: "stretch", group: "ルーティーン", label: "軽いストレッチ", deadline: null, evidence: "C", effort: 1,
+    why: "体の緊張をほぐす。睡眠への効果を示す研究は対象が限られる" },
+  { id: "rabbit", group: "ルーティーン", label: "うさぎにおやすみを言う", deadline: null, evidence: "P", effort: 1,
+    why: "1日の区切り。毎晩同じ順番の行動が、眠りの合図になっていく" },
+  { id: "meditation", group: "ルーティーン", label: "瞑想する（5分以上）", deadline: null, evidence: "B", effort: 2,
+    why: "睡眠の質が改善したというメタ分析がある（比べる相手によって結果は変わる）" },
+  { id: "phone", group: "寝室", label: "スマホを寝室の外に置く", deadline: 0, evidence: "B", effort: 3,
+    why: "ベッドでの画面使用は、1時間ごとに不眠リスクが上がる（大規模調査）" },
+  { id: "tablet", group: "寝室", label: "タブレットを寝室の外に置く", deadline: 0, evidence: "B", effort: 2,
+    why: "スマホだけ遠ざけても、別の画面が役割を引き継ぐ" },
+  { id: "temp", group: "寝室", label: "寝室の温度を整える（エアコン・寝具）", deadline: null, evidence: "B", effort: 1,
+    why: "暑すぎ・寒すぎは深い睡眠を減らす" },
+  { id: "ventilate", group: "寝室", label: "寝室を換気する", deadline: null, evidence: "C", effort: 1,
+    why: "換気の少ない寝室では深い睡眠が短かった（小規模な実地研究）" },
+  { id: "dark", group: "寝室", label: "寝室を真っ暗にする（豆電球を消す）", deadline: null, evidence: "C", effort: 1,
+    why: "睡眠中の光が、眠っている間の体の休まり方に影響したという実験がある" }
 ];
+var ITEM_GROUPS = ["日中〜夕方", "夜の流れ", "ルーティーン", "寝室"];
 
 var STORAGE_KEY = "sleep-coach-v4";   // v3.5 までの "sleep-coach-data" とは混ぜない
 var QUEUE_KEY = "sleep-coach-queue";
@@ -135,6 +188,50 @@ function assign() {
 }
 
 /* ============================================================
+   ポイント
+   ============================================================ */
+// djb2 ＋乗算ハッシュ（v3.5 から復活）。日替わりボーナスの選択に使う
+function hashStr(str) {
+  var h = 5381;
+  for (var i = 0; i < str.length; i++) { h = ((h * 33) ^ str.charCodeAt(i)) >>> 0; }
+  return (Math.imul(h, 2654435761) >>> 0) >>> 8;
+}
+
+function itemPoints(item) { return item.effort * EVIDENCE[item.evidence].weight; }
+
+// その夜のボーナス項目（柱の Mac は対象外）。日付で決まるので、夜と翌朝で変わらない
+function bonusItemId(key) {
+  var pool = ITEMS.filter(function(it) { return !it.pillar; });
+  return pool[hashStr(key + "-bonus") % pool.length].id;
+}
+
+// 朝の記録（消灯時刻）が済んでいるか。v5 では夜のチェックだけ付いた夜（late なし）があるので、
+// 「nights[key] がある＝記録済み」とは扱えない
+function isRecorded(night) { return !!(night && night.late !== undefined); }
+
+// その夜の点数。checks は { itemId: true }、late は朝の記録（未記録なら undefined）
+function nightPoints(night, key) {
+  if (!night) return 0;
+  var checks = night.checks || {}, bonus = bonusItemId(key), sum = 0;
+  ITEMS.forEach(function(it) {
+    if (checks[it.id]) sum += itemPoints(it) * (it.id === bonus ? 2 : 1);
+  });
+  if (night.late === 0) sum += LIGHTS_OUT_POINTS;
+  return sum;
+}
+
+// クリア = 柱2本（消灯の目標・Mac）＋目標点以上
+function nightCleared(night, key) {
+  return !!(night && night.late === 0 && night.checks && night.checks.mac && nightPoints(night, key) >= TARGET_POINTS);
+}
+
+function totalPoints(data) {
+  var sum = 0;
+  for (var k in data.nights) { if (data.nights.hasOwnProperty(k)) sum += nightPoints(data.nights[k], k); }
+  return sum;
+}
+
+/* ============================================================
    目標と週の判定
    ============================================================ */
 // その日の夜に有効だった目標。目標の変更は週の頭（日曜）から有効になる
@@ -165,7 +262,7 @@ function judgeWeeks(data) {
   var w = addDays(out.judgedWeek, 7);
   while (w < thisWeek) {
     // 土曜の夜は日曜の朝に記録される。記録が済むか、月曜になるまでは判定を待つ
-    if (!out.nights[addDays(w, 6)] && today < addDays(w, 8)) break;
+    if (!isRecorded(out.nights[addDays(w, 6)]) && today < addDays(w, 8)) break;
     var cur = targetFor(out, w);
     var patch = { judgedWeek: w };
     if (wonCount(out, w) >= NEED_PER_WEEK && cur > FINAL_TARGET) {
@@ -268,8 +365,32 @@ var S = {
   clockBig: { fontSize: 40, fontWeight: 800, color: "#f5f5f5", lineHeight: 1.1, fontVariantNumeric: "tabular-nums" },
   clockMid: { fontSize: 28, fontWeight: 800, color: "#f59e0b", lineHeight: 1.2, fontVariantNumeric: "tabular-nums" },
   sleepNote: { fontSize: 13, color: "#777", marginBottom: 16 },
-  routineItem: { display: "flex", gap: 10, padding: "8px 0", fontSize: 15, color: "#d4d4d4", lineHeight: 1.5, borderTop: "1px solid #1a1a1a" },
-  routineNum: { color: "#555", fontVariantNumeric: "tabular-nums", flexShrink: 0 },
+  // 朝の「昨夜の仕上げ」のコンパクトなチップ
+  chipRow: { display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 18 },
+  chip: { padding: "7px 10px", backgroundColor: "#161616", color: "#999", border: "1px solid #2a2a2a", borderRadius: 999, fontSize: 13, cursor: "pointer" },
+  chipOn: { backgroundColor: "#0f2a1a", color: "#22c55e", border: "1px solid #166534" },
+  // 結果・進み具合
+  resultText: { fontSize: 17, fontWeight: 700, color: "#f5f5f5", lineHeight: 1.5 },
+  bonusLine: { fontSize: 14, color: "#f59e0b", fontWeight: 700, marginBottom: 12 },
+  barOuter: { width: "100%", height: 8, backgroundColor: "#222", borderRadius: 4, overflow: "hidden", marginBottom: 6 },
+  barInner: { height: "100%", backgroundColor: "#f59e0b", borderRadius: 4 },
+  barText: { fontSize: 14, color: "#d4d4d4", marginBottom: 4, fontVariantNumeric: "tabular-nums" },
+  pillarText: { fontSize: 13, color: "#999" },
+  // チェックリスト
+  groupLabel: { fontSize: 12, color: "#777", fontWeight: 700, letterSpacing: "0.08em", margin: "16px 0 6px" },
+  itemRow: { display: "block", width: "100%", textAlign: "left", backgroundColor: "transparent", border: "none", borderTop: "1px solid #1a1a1a", padding: "10px 0", cursor: "pointer", color: "#d4d4d4", fontFamily: "inherit" },
+  itemTop: { display: "flex", alignItems: "center", gap: 10 },
+  itemCheck: { width: 22, height: 22, borderRadius: "50%", border: "2px solid #444", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, color: "#000" },
+  itemCheckOn: { backgroundColor: "#22c55e", border: "2px solid #22c55e" },
+  itemLabel: { flex: 1, fontSize: 15, lineHeight: 1.4 },
+  itemDeadline: { fontSize: 12, color: "#888", marginLeft: 6, fontVariantNumeric: "tabular-nums" },
+  itemPoints: { fontSize: 14, fontWeight: 700, color: "#888", flexShrink: 0, fontVariantNumeric: "tabular-nums" },
+  itemPointsBonus: { color: "#f59e0b" },
+  pillarBadge: { fontSize: 11, fontWeight: 800, color: "#000", backgroundColor: "#f59e0b", borderRadius: 4, padding: "1px 5px", marginLeft: 6 },
+  itemBottom: { display: "flex", gap: 8, marginTop: 4, paddingLeft: 32, fontSize: 12, color: "#666", lineHeight: 1.5 },
+  evidenceBadge: { fontSize: 11, fontWeight: 800, borderRadius: 4, padding: "0 5px", border: "1px solid", flexShrink: 0, height: 18, lineHeight: "16px" },
+  weekPoints: { fontSize: 11, color: "#777", fontVariantNumeric: "tabular-nums" },
+  legend: { width: "100%", maxWidth: 400, fontSize: 12, color: "#666", lineHeight: 1.7, padding: "0 4px" },
   weekRow: { display: "flex", gap: 6, justifyContent: "space-between", marginBottom: 14 },
   weekDay: { display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flex: 1 },
   weekDayLabel: { fontSize: 11, color: "#666" },
@@ -313,14 +434,28 @@ function SleepCoach() {
   var target = targetFor(data, today);
   var thisWeek = weekKeyOf(today);
 
-  // 朝の記録。保存したらすぐ週の判定もやり直す（日曜の朝に土曜の夜を記録した時点で前進が決まる）
+  // 朝の記録。夜に付けたチェックは消さずに消灯時刻をマージする。
+  // 保存したらすぐ週の判定もやり直す（日曜の朝に土曜の夜を記録した時点で前進が決まる）
   function handleRecord(late) {
     var nights = assign({}, data.nights);
-    nights[lastNight] = { target: lastNightTarget, late: late };
+    nights[lastNight] = assign({}, data.nights[lastNight], { target: lastNightTarget, late: late });
     var r = judgeWeeks(assign({}, data, { nights: nights }));
     save(r.data);
-    sendEvent("sleep", "目標" + fmtClock(lastNightTarget) + " / " + lateLabel(lastNightTarget, late), lastNight);
+    var pts = nightPoints(nights[lastNight], lastNight);
+    var cleared = nightCleared(nights[lastNight], lastNight);
+    sendEvent("sleep", "目標" + fmtClock(lastNightTarget) + " / " + lateLabel(lastNightTarget, late) +
+      " / " + pts + "pt / " + (cleared ? "クリア" : "未クリア"), lastNight);
     sendTargetEvents(r.events);
+  }
+
+  // チェックの付け外し。target / late など既存の値は保持する
+  function toggleCheck(key, id) {
+    var night = data.nights[key] || {};
+    var checks = assign({}, night.checks);
+    if (checks[id]) delete checks[id]; else checks[id] = true;
+    var nights = assign({}, data.nights);
+    nights[key] = assign({}, night, { checks: checks });
+    save(assign({}, data, { nights: nights }));
   }
 
   function lateLabel(t, late) {
@@ -329,9 +464,22 @@ function SleepCoach() {
     return "〜" + fmtClock(t + late);
   }
 
-  // --- 朝の質問（昨夜をまだ記録していないときだけ） ---
-  var recordCard = data.nights[lastNight] ? null : e("div", { style: S.card },
-    e("div", { style: S.cardLabel }, "朝の記録"),
+  var lastNightData = data.nights[lastNight];
+  var lastChecks = (lastNightData && lastNightData.checks) || {};
+
+  // --- 朝の記録（昨夜をまだ記録していないときだけ）: 昨夜のチェックを付け足してから、消灯時刻で確定 ---
+  var recordCard = isRecorded(lastNightData) ? null : e("div", { style: S.card },
+    e("div", { style: S.cardLabel }, "昨夜の仕上げ"),
+    e("div", { style: assign({}, S.question, { fontSize: 15 }) }, "やったことを付け足す"),
+    e("div", { style: S.chipRow },
+      ITEMS.map(function(it) {
+        return e("button", {
+          key: it.id,
+          style: assign({}, S.chip, lastChecks[it.id] ? S.chipOn : {}),
+          onClick: function() { toggleCheck(lastNight, it.id); }
+        }, (lastChecks[it.id] ? "✓ " : "") + it.label);
+      })
+    ),
     e("div", { style: S.question }, "昨夜は何時に寝た？"),
     LATE_OPTIONS.map(function(late) {
       return e("button", {
@@ -341,6 +489,27 @@ function SleepCoach() {
       }, lateLabel(lastNightTarget, late));
     })
   );
+
+  // --- 昨夜の結果（朝の記録が済んだ日は一日中表示） ---
+  var resultCard = null;
+  if (isRecorded(lastNightData)) {
+    var lastPts = nightPoints(lastNightData, lastNight);
+    var resultText;
+    if (nightCleared(lastNightData, lastNight)) {
+      resultText = "昨夜 " + lastPts + "pt — クリア！";
+    } else {
+      var missing = [];
+      if (lastNightData.late !== 0) missing.push("消灯の目標");
+      if (!lastChecks.mac) missing.push("Macの作業");
+      resultText = missing.length
+        ? "昨夜 " + lastPts + "pt — 柱（" + missing.join("・") + "）が欠けてクリアならず"
+        : "昨夜 " + lastPts + "pt — あと" + (TARGET_POINTS - lastPts) + "ptでクリア";
+    }
+    resultCard = e("div", { style: S.card },
+      e("div", { style: S.cardLabel }, "昨夜の結果"),
+      e("div", { style: S.resultText }, resultText)
+    );
+  }
 
   // --- 目標が前に進んだお知らせ（「変更した」を押すまで表示） ---
   var notice = data.stepNotice;
@@ -354,6 +523,10 @@ function SleepCoach() {
   ) : null;
 
   // --- 今夜 ---
+  var tonightChecks = (data.nights[today] && data.nights[today].checks) || {};
+  var tonightPts = nightPoints(data.nights[today], today);
+  var bonusId = bonusItemId(today);
+  var bonusItem = ITEMS.filter(function(it) { return it.id === bonusId; })[0];
   var tonightCard = e("div", { style: S.card },
     e("div", { style: S.cardLabel }, "今夜"),
     e("div", { style: S.clockRow },
@@ -367,10 +540,42 @@ function SleepCoach() {
       )
     ),
     e("div", { style: S.sleepNote }, fmtClock(WAKE_TIME) + " 起床なら、睡眠は " + fmtDuration(WAKE_TIME - target)),
-    ROUTINE.map(function(step, idx) {
-      return e("div", { key: idx, style: S.routineItem },
-        e("span", { style: S.routineNum }, (idx + 1) + "."),
-        e("span", null, step)
+    e("div", { style: S.bonusLine }, "今夜のボーナス：" + bonusItem.label + "（2倍）"),
+    e("div", { style: S.barText }, "今夜 " + tonightPts + " / " + TARGET_POINTS + "pt"),
+    e("div", { style: S.barOuter },
+      e("div", { style: assign({}, S.barInner, { width: Math.min(100, tonightPts / TARGET_POINTS * 100) + "%" }) })
+    ),
+    e("div", { style: S.pillarText },
+      "柱：Macの作業 " + (tonightChecks.mac ? "✓" : "未") + " ／ 消灯の目標（翌朝の記録で付く）")
+  );
+
+  // --- チェックリスト（グループ順） ---
+  var checklistCard = e("div", { style: S.card },
+    e("div", { style: S.cardLabel }, "今夜のチェックリスト"),
+    ITEM_GROUPS.map(function(group) {
+      return e("div", { key: group },
+        e("div", { style: S.groupLabel }, group),
+        ITEMS.filter(function(it) { return it.group === group; }).map(function(it) {
+          var on = !!tonightChecks[it.id];
+          var isBonus = it.id === bonusItem.id;
+          var pts = itemPoints(it) * (isBonus ? 2 : 1);
+          var ev = EVIDENCE[it.evidence];
+          return e("button", { key: it.id, style: S.itemRow, onClick: function() { toggleCheck(today, it.id); } },
+            e("div", { style: S.itemTop },
+              e("div", { style: assign({}, S.itemCheck, on ? S.itemCheckOn : {}) }, on ? "✓" : ""),
+              e("div", { style: S.itemLabel },
+                it.label,
+                it.deadline !== null ? e("span", { style: S.itemDeadline }, "〜" + fmtClock(target + it.deadline)) : null,
+                it.pillar ? e("span", { style: S.pillarBadge }, "柱") : null
+              ),
+              e("div", { style: assign({}, S.itemPoints, isBonus ? S.itemPointsBonus : {}) }, "+" + pts + (isBonus ? " ×2" : ""))
+            ),
+            e("div", { style: S.itemBottom },
+              e("span", { style: assign({}, S.evidenceBadge, { color: ev.color, borderColor: ev.color }) }, ev.label),
+              e("span", null, it.why)
+            )
+          );
+        })
       );
     })
   );
@@ -378,21 +583,30 @@ function SleepCoach() {
   // --- 今週 ---
   var won = wonCount(data, thisWeek);
   var weekDots = [];
+  var weekPts = 0;
   for (var i = 0; i < 7; i++) {
     var key = addDays(thisWeek, i);
     var n = data.nights[key];
     var bg, label;
     if (n && n.late === 0) { bg = "#22c55e"; label = "✓"; }
-    else if (n) { bg = n.late <= 30 ? "#f59e0b" : "#ef4444"; label = "✗"; }
+    else if (isRecorded(n)) { bg = n.late <= 30 ? "#f59e0b" : "#ef4444"; label = "✗"; }
     else if (key < data.startDate) { bg = "transparent"; label = ""; }  // 使い始める前の夜（記録の対象外）
     else if (key < lastNight) { bg = "#333"; label = "−"; } // 記録しなかった夜
     else { bg = "transparent"; label = ""; }                // 記録待ちの昨夜と、まだ来ていない夜
     var dotBorder = bg === "transparent" && key >= data.startDate ? { border: "1px solid #2a2a2a" } : {};
+    var dayPts = nightPoints(n, key);
+    weekPts += dayPts;
     weekDots.push(e("div", { key: key, style: S.weekDay },
       e("div", { style: S.weekDayLabel }, getDayOfWeek(key)),
-      e("div", { style: assign({}, S.weekDot, { backgroundColor: bg }, dotBorder) }, label)
+      e("div", { style: assign({}, S.weekDot, { backgroundColor: bg }, dotBorder) }, label),
+      // その夜の点数。クリアした夜は金色
+      e("div", { style: assign({}, S.weekPoints, nightCleared(n, key) ? { color: "#f59e0b", fontWeight: 700 } : {}) }, dayPts ? dayPts : "")
     ));
   }
+
+  var total = totalPoints(data);
+  var level = Math.floor(total / LEVEL_STEP) + 1;
+  var toNext = level * LEVEL_STEP - total;
 
   var nextTarget = Math.max(FINAL_TARGET, target - STEP);
   var weekText;
@@ -409,10 +623,22 @@ function SleepCoach() {
   var weekCard = e("div", { style: S.card },
     e("div", { style: S.cardLabel }, "今週"),
     e("div", { style: S.weekRow }, weekDots),
-    e("div", { style: S.weekText }, weekText)
+    e("div", { style: S.weekText }, weekText),
+    e("div", { style: assign({}, S.weekText, { marginTop: 8, color: "#999" }) },
+      "今週 " + weekPts + "pt ／ 累計 " + total + "pt ・ Lv." + level + "（あと" + toNext + "ptで Lv." + (level + 1) + "）")
   );
 
-  return e("div", { style: S.container }, recordCard, noticeCard, tonightCard, weekCard);
+  // --- ランクの説明 ---
+  var legend = e("div", { style: S.legend },
+    "ポイント = 手間（小1・中2・大3）× ランクの重み",
+    ["A", "B", "C", "P"].map(function(k) {
+      var ev = EVIDENCE[k];
+      return e("div", { key: k }, ev.label + "（×" + ev.weight + "）：" + ev.desc);
+    }),
+    "クリア = 目標 " + TARGET_POINTS + "pt 以上 ＋ 柱2本（消灯の目標・Macの作業）"
+  );
+
+  return e("div", { style: S.container }, recordCard, resultCard, noticeCard, tonightCard, checklistCard, weekCard, legend);
 }
 
 var root = ReactDOM.createRoot(document.getElementById("root"));
